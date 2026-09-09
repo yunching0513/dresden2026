@@ -229,3 +229,36 @@ body.collapsed .hoverbox { left: 12px; }
   #btn-print { display: none; }
   #btn-share { padding: 6px !important; white-space: nowrap; }
 }
+
+/* ---- annotations ---- */
+.annot-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.annot-tools button.active { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+.annot-colors { display: flex; gap: 6px; flex-wrap: wrap; }
+.annot-colors span { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.annot-colors span.active { border-color: #fff; box-shadow: 0 0 0 2px var(--ink); }
+.annot-hint { background: #fff8e6; border: 1px solid #f3dfa5; border-radius: 6px; padding: 6px 10px; color: #7a5a00; }
+#annot-editor input[type=text] { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; font: inherit; font-size: 13px; margin-bottom: 6px; }
+#annot-editor textarea { font-family: inherit; margin-bottom: 4px; }
+.annot-editor-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.annot-x { background: none !important; border: 0 !important; color: var(--muted) !important; font-size: 18px; padding: 0 4px !important; line-height: 1; }
+.annot-danger { color: var(--warn) !important; border-color: #f1c4bf !important; }
+.annot-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 6px; border-top: 1px solid var(--line); cursor: pointer; }
+.annot-item:hover { background: #f4f8fc; }
+.annot-item.selected { background: #eaf2fa; }
+.annot-sw { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex: none; }
+.annot-body { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.annot-body b { font-size: 13px; }
+.annot-note { color: #444; white-space: pre-wrap; }
+.annot-del { background: none !important; border: 0 !important; color: var(--muted) !important; font-size: 16px; padding: 0 4px !important; line-height: 1; }
+.annot-del:hover { color: var(--warn) !important; }
+.annot-io { flex-wrap: wrap; margin-top: 8px; }
+.annot-file { display: inline-block; cursor: pointer; border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; font-size: 12px; color: var(--accent); }
+body.drawing #map, body.drawing #map3d canvas { cursor: crosshair !important; }
+.annot-pin { filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+.annot-pin.selected svg { transform: scale(1.18); transform-origin: bottom center; }
+.annot-label { background: rgba(255,255,255,.92); border: 0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.25); font-size: 11px; font-weight: 600; color: var(--ink); padding: 2px 6px; }
+.annot-label::before { display: none; }
+.annot-popup .annot-cat { display: inline-block; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-bottom: 4px; }
+.annot-popup b { display: block; font-size: 13px; margin-bottom: 4px; }
+.annot-popup p { margin: 4px 0; white-space: pre-wrap; }
+.annot-popup button { margin-top: 6px; }

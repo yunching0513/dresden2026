@@ -77,7 +77,7 @@
         layer.on({
           mouseover: (e) => { if (!state.choropleth) e.target.setStyle({ weight: 2.5, fillOpacity: 0.15 }); showHover(feature); },
           mouseout: (e) => { state.stLayer.resetStyle(e.target); hideHover(); },
-          click: (e) => { L.DomEvent.stopPropagation(e); selectStadtteil(feature.properties.code, true); },
+          click: (e) => { if (window.DDAnnotate && window.DDAnnotate.isDrawing()) return; L.DomEvent.stopPropagation(e); selectStadtteil(feature.properties.code, true); },
         });
       },
     });
@@ -255,12 +255,12 @@
       if (def.type === 'bundled') { state.stLayer.addTo(state.map); updateLabelVisibility(); state.layers[id] = { def, leaflet: state.stLayer }; }
       else if (def.type === 'wms') addWms(def);
       else if (def.type === 'overpass') addOverpass(def);
-      else if (def.type === 'custom') { state.layers[id].leaflet.addTo(state.map); }
+      else if (def.type === 'custom' || def.type === 'annotation') { state.layers[id].leaflet.addTo(state.map); }
     } else {
       const l = state.layers[id];
       if (l && l.leaflet) state.map.removeLayer(l.leaflet);
       if (def.type === 'bundled') updateLabelVisibility();
-      if (l && def.type !== 'custom' && def.type !== 'bundled') delete state.layers[id];
+      if (l && def.type !== 'custom' && def.type !== 'bundled' && def.type !== 'annotation') delete state.layers[id];
       setStatus(id, '');
     }
     writeHash();
@@ -339,6 +339,7 @@
 
   /* GetFeatureInfo：點擊地圖查詢已開啟的WMS圖層屬性 */
   function onMapClick(e) {
+    if (window.DDAnnotate && window.DDAnnotate.isDrawing()) return;
     const active = Object.values(state.layers).filter((l) => l.def.type === 'wms' && l.leaflet && state.map.hasLayer(l.leaflet));
     if (!active.length) return;
     const map = state.map;
@@ -753,7 +754,7 @@
 
   function applyPreset(p) {
     const keep = new Set(p.layers);
-    Object.keys(state.layers).forEach((id) => { if (!keep.has(id) && state.layers[id].def.type !== 'custom') toggleLayer(id, false); });
+    Object.keys(state.layers).forEach((id) => { const t = state.layers[id].def.type; if (!keep.has(id) && t !== 'custom' && t !== 'annotation') toggleLayer(id, false); });
     p.layers.forEach((id) => { if (!state.layers[id]) toggleLayer(id, true); });
     switchTab('layers');
   }
@@ -801,7 +802,7 @@
   let hashLock = false;
   function writeHash() {
     if (hashLock || !state.map) return;
-    const ids = Object.keys(state.layers).filter((id) => state.layers[id].def.type !== 'custom' && state.map.hasLayer(state.layers[id].leaflet || state.stLayer));
+    const ids = Object.keys(state.layers).filter((id) => state.layers[id].def.type !== 'custom' && state.layers[id].def.type !== 'annotation' && state.map.hasLayer(state.layers[id].leaflet || state.stLayer));
     const view = window.DD3D && window.DD3D.camera();
     const c = view ? view.center : state.map.getCenter();
     const zoom = view ? view.zoom : state.map.getZoom();
@@ -831,7 +832,7 @@
     $('#stats-bezirk').addEventListener('change', renderStatsTable);
     $('#btn-print').addEventListener('click', () => { window.DD3D.close(); window.print(); });
     $('#btn-reset').addEventListener('click', () => { state.map.setView([51.05, 13.74], 12); state.selectedCode = null; state.stLayer.setStyle(styleStadtteil); });
-    $('#btn-clear').addEventListener('click', () => { Object.keys(state.layers).forEach((id) => toggleLayer(id, false)); });
+    $('#btn-clear').addEventListener('click', () => { Object.keys(state.layers).forEach((id) => { if (state.layers[id].def.type !== 'annotation') toggleLayer(id, false); }); });
     $('#btn-share').addEventListener('click', async () => {
       writeHash();
       try { await navigator.clipboard.writeText(location.href); $('#btn-share').textContent = '已複製連結'; setTimeout(() => { $('#btn-share').textContent = '分享檢視'; }, 1500); } catch (e) { prompt('複製此連結：', location.href); }
@@ -860,6 +861,7 @@
     const ids = h && h.l !== undefined ? h.l.split(',').filter(Boolean) : C.layers.filter((l) => l.default).map((l) => l.id);
     ids.forEach((id) => toggleLayer(id, true));
     hashLock = false;
+    window.DDAnnotate.init({ state, switchTab });
     window.DD3D.init({ state, writeHash, switchTab }, h);
     writeHash();
     refreshStatsSelect();

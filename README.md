@@ -19,6 +19,7 @@
 | **圖層** | 七大主題、40個圖層：行政區與統計單元／土地使用與都市計畫／住宅、人口與開發動態／交通與運具／公共設施與生活機能／環境、綠地與地形／水系與洪水風險。每個圖層標示來源（官方WMS、OSM、附帶）、授權、說明與載入狀態。 |
 | **概況** | 市域關鍵數字（面積、人口、行政分區、海拔、FNP生效日等）與六個「規劃情境」一鍵套用圖層組合：市域概況、法定計畫與開發壓力、生活機能（15分鐘城市）、運具供給、綠地與環境、洪水與地形風險。 |
 | **統計** | 點任一Stadtteil顯示面積、所屬Stadtbezirk／Ortschaft與各設施數（含每km²密度）；表格可依Stadtteil或彙整為Stadtbezirk排序。 |
+| **註記** | 在2D或3D地圖上落Pin、畫路線、畫範圍，填寫標題、類別（觀察／問題點／機會點／提案／待查證…）、顏色與說明；自動計算長度、面積與所在Stadtteil。註記保存在瀏覽器localStorage，可匯出／匯入GeoJSON、匯出Markdown摘要。 |
 | **資料** | 貼上或上傳CSV（如opendata.dresden.de的「Einwohner ab Stadtteil」）以代碼或名稱對應Stadtteil，產生五分位choropleth；以NodeId加入任何官方WMS資料集；加入GeoJSON（URL或檔案）。 |
 
 其他：搜尋（Stadtteil本地比對＋Nominatim地址）、點擊地圖查詢官方WMS屬性（GetFeatureInfo）、WMS圖例、OSM圖層匯出GeoJSON、URL hash保存檢視（可分享）、列印。
@@ -81,6 +82,8 @@ index.html               版面與四個頁籤
 css/app.css              樣式（含列印與行動版）
 js/catalog.js            圖層目錄、規劃情境、市域概況（要新增圖層改這裡）
 js/app.js                地圖、圖層載入（WMS／Overpass／GeoJSON）、統計、CSV、搜尋、hash狀態
+js/annotate.js           註記工具（Pin／線／範圍、編輯、localStorage、匯入匯出）
+js/buildings3d.js        3D建築量體（MapLibre GL、GeoSN LoD1）
 js/geo.js                point-in-polygon、面積、分位數等幾何工具
 data/stadtteile.js       Stadtteile界線（含code、bezirk、area_km2）
 data/stadtteile.geojson  同上，GeoJSON版

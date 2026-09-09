@@ -33,6 +33,7 @@
       <button class="tab active" data-tab="layers">圖層</button>
       <button class="tab" data-tab="overview">概況</button>
       <button class="tab" data-tab="stats">統計</button>
+      <button class="tab" data-tab="annotate">註記</button>
       <button class="tab" data-tab="data">資料</button>
     </nav>
 
@@ -93,6 +94,7 @@
         <li>「統計」頁籤可依Stadtteil或Stadtbezirk排序設施密度（/km²）。</li>
         <li>「資料」頁籤可貼上opendata.dresden.de的CSV（如Einwohner ab Stadtteil）做choropleth。</li>
         <li>其他官方資料集：在opendata.dresden.de找到WMS連結的NodeId，於「資料」頁籤加入。</li>
+        <li>「註記」頁籤可落Pin、畫線、畫範圍並加說明，2D與3D皆可用；匯出GeoJSON即可帶回QGIS。</li>
       </ol>
     </section>
 
@@ -105,6 +107,41 @@
       <label class="row small"><input type="checkbox" id="stats-bezirk"> 依Stadtbezirk / Ortschaft彙整</label>
       <div id="stats-table" data-sort="val" data-dir="desc"></div>
       <div id="choro-legend" class="card" hidden></div>
+    </section>
+
+    <section id="panel-annotate" class="panel" hidden>
+      <h2>註記工具</h2>
+      <p class="muted small">在2D或3D地圖上落Pin、畫路線與畫範圍，並加上標題與說明。註記自動保存在此瀏覽器，可匯出GeoJSON或Markdown。</p>
+      <div id="annot-tools" class="annot-tools">
+        <button data-tool="pin" class="ghost" title="落Pin">📍 落Pin</button>
+        <button data-tool="line" class="ghost" title="畫線">〰 畫線</button>
+        <button data-tool="polygon" class="ghost" title="畫範圍">⬠ 畫範圍</button>
+        <button id="annot-finish" hidden>完成</button>
+        <button id="annot-cancel" class="ghost" hidden>取消</button>
+      </div>
+      <div class="row"><label class="small">顏色</label><div id="annot-color-picker" class="annot-colors"></div></div>
+      <div class="row"><label class="small">預設類別</label><select id="annot-default-cat"></select></div>
+      <p id="annot-hint" class="annot-hint small" hidden></p>
+
+      <div id="annot-editor" class="card" hidden>
+        <div class="annot-editor-head"><span id="annot-kind" class="small muted"></span><button id="annot-close" class="annot-x" title="關閉">×</button></div>
+        <input id="annot-title" type="text" placeholder="標題（例如：Neustadt街角閒置基地）">
+        <textarea id="annot-note" rows="4" placeholder="註記內容：觀察、問題、提案、待查證事項…"></textarea>
+        <div class="row"><label class="small">類別</label><select id="annot-cat"></select></div>
+        <div class="row"><label class="small">顏色</label><div id="annot-edit-colors" class="annot-colors"></div></div>
+        <div class="row"><button id="annot-zoom" class="mini ghost">定位</button><button id="annot-delete" class="mini ghost annot-danger">刪除</button></div>
+      </div>
+
+      <h2>註記清單 <span id="annot-count" class="count"></span></h2>
+      <label class="row small"><input type="checkbox" id="annot-visible" checked> 在地圖上顯示註記</label>
+      <div id="annot-list"></div>
+      <div class="row annot-io">
+        <button id="annot-export" class="mini ghost">匯出GeoJSON</button>
+        <button id="annot-export-md" class="mini ghost">匯出Markdown</button>
+        <label class="mini ghost annot-file">匯入GeoJSON<input type="file" id="annot-import" accept=".geojson,.json" hidden></label>
+        <button id="annot-clear" class="mini ghost annot-danger">清除全部</button>
+      </div>
+      <p class="muted small">提示：Pin可直接拖曳移動；線與範圍若要調整，請刪除後重畫。分享連結不含註記，請用匯出檔案交換。</p>
     </section>
 
     <section id="panel-data" class="panel" hidden>
@@ -154,6 +191,7 @@
   <script src="js/geo.js"></script>
   <script src="js/catalog.js"></script>
   <script src="js/buildings3d.js"></script>
+  <script src="js/annotate.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

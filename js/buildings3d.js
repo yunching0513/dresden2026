@@ -55,6 +55,7 @@
           if (e.sourceId && tiles.has(e.sourceId)) { tiles.get(e.sourceId).error = true; report(); }
         });
         map.on('click', inspectBuilding);
+        if (window.DDAnnotate) window.DDAnnotate.attach3d(map);
         map.getCanvas().addEventListener('webglcontextlost', () => { status('3D 顯示資源已中斷，請切回 2D 或重新整理頁面。'); });
       } else {
         map.resize(); map.jumpTo({center:[c.lng,c.lat],zoom:app.state.map.getZoom()}); syncOverlays(); scheduleTiles();
@@ -127,6 +128,7 @@
   }
   function distance(t,c) { return ((t.bounds[0]+t.bounds[2])/2-c.lng)**2+((t.bounds[1]+t.bounds[3])/2-c.lat)**2; }
   function inspectBuilding(event) {
+    if (window.DDAnnotate && window.DDAnnotate.isDrawing()) return;
     const ids=[...tiles.keys()].filter(id=>map.getLayer(id)); if(!ids.length) return;
     const feature=map.queryRenderedFeatures(event.point,{layers:ids})[0]; if(!feature) return;
     const p=feature.properties, content=document.createElement('div'); content.className='building-popup';
@@ -158,8 +160,10 @@
           overlays.set(key,{source:id,layers:[id]});
         } else if(l.toGeoJSON) {
           map.addSource(id,{type:'geojson',data:l.toGeoJSON()});
-          const layers=[{id:id+'-fill',type:'fill',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':color,'fill-opacity':0.12}}, {id:id+'-line',type:'line',filter:['!=',['geometry-type'],'Point'],paint:{'line-color':color,'line-width':1.2}}, {id:id+'-point',type:'circle',filter:['==',['geometry-type'],'Point'],paint:{'circle-color':color,'circle-radius':4,'circle-stroke-width':1,'circle-stroke-color':'#fff'}}];
-          layers.forEach(layer=>map.addLayer({...layer,source:id},before));
+          const fc=['coalesce',['get','color'],color], annot=entry.def.type==='annotation';
+          const layers=[{id:id+'-fill',type:'fill',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':fc,'fill-opacity':annot?0.22:0.12}}, {id:id+'-line',type:'line',filter:['!=',['geometry-type'],'Point'],paint:{'line-color':fc,'line-width':annot?2.5:1.2}}, {id:id+'-point',type:'circle',filter:['==',['geometry-type'],'Point'],paint:{'circle-color':fc,'circle-radius':annot?7:4,'circle-stroke-width':annot?2:1,'circle-stroke-color':'#fff'}}];
+          // 註記畫在建築量體之上，其餘向量圖層維持在量體之下
+          layers.forEach(layer=>map.addLayer({...layer,source:id},annot?undefined:before));
           overlays.set(key,{source:id,layers:layers.map(l=>l.id)});
         }
       } catch(error) { console.warn('3D overlay unavailable',key,error); }
@@ -188,5 +192,5 @@
     // Explicit 2D share links retain 2D; new visits open the city model.
     if(!hash||hash.v!=='2d')open(hash);
   }
-  window.DD3D={init,camera,close};
+  window.DD3D={init,camera,close,refreshOverlays:()=>{clearTimeout(overlayTimer);overlayTimer=setTimeout(syncOverlays,100);}};
 })();
