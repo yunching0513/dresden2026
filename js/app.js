@@ -1,4 +1,4 @@
-/* app.js：Dresden Open Data Layers 主程式 */
+/* app.js：Dresden Open Data Layers主程式 */
 (function () {
   'use strict';
 
@@ -164,7 +164,7 @@
       rows.push(`<tr><th>${l.def.name}</th><td>${n} <span class="muted">（${G.fmt(n / p.area_km2, 1)}/km²）</span></td></tr>`);
     }
     card.innerHTML = `<h3>${p.code} ${p.name}</h3><table class="kv">${rows.join('')}</table>
-      <p class="muted small">設施數以 OSM 物件中心點落入本區計算，僅供概覽；官方統計請參考 Stadtteilkatalog。</p>`;
+      <p class="muted small">設施數以OSM物件中心點落入本區計算，僅供概覽；官方統計請參考Stadtteilkatalog。</p>`;
     card.hidden = false;
   }
 
@@ -209,13 +209,13 @@
       body.appendChild(el('div', { class: 'legend-box', id: `lg-${id}` }));
     }
     if (def.type === 'portal') {
-      body.appendChild(el('p', { class: 'meta', html: `<a href="https://opendata.dresden.de/?q=${encodeURIComponent(def.portalQuery)}" target="_blank" rel="noopener">在 opendata.dresden.de 搜尋「${def.portalQuery}」</a>` }));
+      body.appendChild(el('p', { class: 'meta', html: `<a href="https://opendata.dresden.de/?q=${encodeURIComponent(def.portalQuery)}" target="_blank" rel="noopener">在opendata.dresden.de搜尋「${def.portalQuery}」</a>` }));
       cb.disabled = true;
     }
     if (def.type === 'overpass') {
       const q = def.rawQuery || (def.query + (def.relQuery || ''));
       body.appendChild(el('p', { class: 'meta mono', text: q.replace(/\(\{\{bbox\}\}\)/g, '') }));
-      const btn = el('button', { class: 'mini', text: '匯出 GeoJSON' });
+      const btn = el('button', { class: 'mini', text: '匯出GeoJSON' });
       btn.addEventListener('click', () => exportLayer(id));
       body.appendChild(btn);
     }
@@ -228,10 +228,10 @@
   }
 
   function sourceLabel(def) {
-    if (def.type === 'wms') return def.verified ? '官方 WMS' : '官方 WMS?';
+    if (def.type === 'wms') return def.verified ? '官方WMS' : '官方WMS?';
     if (def.type === 'overpass') return 'OSM';
     if (def.type === 'bundled') return '附帶';
-    if (def.type === 'portal') return '待補 NodeId';
+    if (def.type === 'portal') return '待補NodeId';
     if (def.type === 'custom') return '自訂';
     return def.type;
   }
@@ -268,7 +268,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* 官方 WMS                                                             */
+  /* 官方WMS                                                             */
   /* ------------------------------------------------------------------ */
   function addWms(def) {
     const id = def.id;
@@ -288,7 +288,7 @@
       wl.on('tileerror', () => {
         entry.errors++;
         if (entry.errors === 3 && entry.version === '1.3.0') {
-          // 退回 WMS 1.1.1（部分服務對 1.3.0 + EPSG:3857 的支援不完整）
+          // 退回WMS 1.1.1（部分服務對1.3.0 + EPSG:3857的支援不完整）
           entry.version = '1.1.1';
           state.map.removeLayer(wl);
           entry.leaflet = make(layersParam, '1.1.1');
@@ -309,7 +309,7 @@
     };
 
     if (def.layers) { start(def.layers); return; }
-    // 嘗試讀取 GetCapabilities 自動取得圖層名稱；跨域失敗則以 NodeId 作為圖層名
+    // 嘗試讀取GetCapabilities自動取得圖層名稱；跨域失敗則以NodeId作為圖層名
     fetchCapabilities(url).then((names) => {
       start(names && names.length ? names.join(',') : String(def.nodeId));
     }).catch(() => start(String(def.nodeId)));
@@ -337,7 +337,7 @@
     box.appendChild(img);
   }
 
-  /* GetFeatureInfo：點擊地圖查詢已開啟的 WMS 圖層屬性 */
+  /* GetFeatureInfo：點擊地圖查詢已開啟的WMS圖層屬性 */
   function onMapClick(e) {
     const active = Object.values(state.layers).filter((l) => l.def.type === 'wms' && l.leaflet && state.map.hasLayer(l.leaflet));
     if (!active.length) return;
@@ -396,7 +396,7 @@
         return await res.json();
       } catch (e) { lastErr = e; }
     }
-    throw lastErr || new Error('Overpass 無法連線');
+    throw lastErr || new Error('Overpass無法連線');
   }
 
   function osmToFeatures(json, def) {
@@ -449,7 +449,7 @@
     const id = def.id;
     const entry = { def, leaflet: null, status: 'loading' };
     state.layers[id] = entry;
-    setStatus(id, '查詢 OSM…', 'loading');
+    setStatus(id, '查詢OSM…', 'loading');
     try {
       let fc = overpassCache[id];
       if (!fc) {
@@ -508,7 +508,7 @@
     const loaded = Object.values(state.layers).filter((l) => l.def.type === 'overpass' && l.counts && l.def.geom !== 'line');
     if (state.choropleth) sel.appendChild(el('option', { value: '__choro', text: `匯入指標：${state.choropleth.label}` }));
     loaded.forEach((l) => sel.appendChild(el('option', { value: l.def.id, text: l.def.name })));
-    if (!sel.options.length) sel.appendChild(el('option', { value: '', text: '（請先開啟任一 OSM 圖層或匯入 CSV）' }));
+    if (!sel.options.length) sel.appendChild(el('option', { value: '', text: '（請先開啟任一OSM圖層或匯入CSV）' }));
     if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
     renderStatsTable();
   }
@@ -561,7 +561,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* CSV 匯入 → choropleth                                                */
+  /* CSV匯入 → choropleth                                                */
   /* ------------------------------------------------------------------ */
   function parseCsv(text) {
     const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim().length);
@@ -610,7 +610,7 @@
         keySel.appendChild(el('option', { value: i, text: h }));
         valSel.appendChild(el('option', { value: i, text: h }));
       });
-      // 自動猜測：鍵欄位＝最多列符合兩位數代碼或 Stadtteil 名稱者；值欄位＝最多列為數字者
+      // 自動猜測：鍵欄位＝最多列符合兩位數代碼或Stadtteil名稱者；值欄位＝最多列為數字者
       const codes = new Set(state.stFC.features.map((f) => f.properties.code));
       const names = new Map(state.stFC.features.map((f) => [normName(f.properties.name), f.properties.code]));
       let bestK = 0, bestKs = -1, bestV = Math.min(1, parsed.header.length - 1), bestVs = -1;
@@ -650,13 +650,13 @@
         values[code] = $('#csv-perkm2').checked ? v / getFeatureByCode(code).properties.area_km2 : v;
         matched++;
       }
-      if (!matched) { $('#csv-info').textContent = '沒有任何列能對應到 Stadtteil 代碼或名稱，請確認鍵欄位。'; return; }
+      if (!matched) { $('#csv-info').textContent = '沒有任何列能對應到Stadtteil代碼或名稱，請確認鍵欄位。'; return; }
       const label = parsed.header[vi] + ($('#csv-perkm2').checked ? '（/km²）' : '');
       state.choropleth = { label, values, breaks: G.quantileBreaks(Object.values(values), 5), additive: !$('#csv-perkm2').checked && $('#csv-additive').checked };
       state.stLayer.setStyle(styleStadtteil);
       if (!state.map.hasLayer(state.stLayer)) toggleLayer('stadtteile', true);
       renderChoroLegend();
-      $('#csv-info').textContent = `已套用：${matched} 個 Stadtteil 對應成功。`;
+      $('#csv-info').textContent = `已套用：${matched} 個Stadtteil對應成功。`;
       refreshStatsSelect();
       $('#stats-layer').value = '__choro';
       renderStatsTable();
@@ -689,9 +689,9 @@
       const nodeId = $('#custom-nodeid').value.trim();
       const url = $('#custom-wms-url').value.trim();
       const layersParam = $('#custom-wms-layers').value.trim();
-      const name = $('#custom-wms-name').value.trim() || (nodeId ? `NodeId ${nodeId}` : 'WMS 圖層');
-      if (!nodeId && !url) { alert('請填 NodeId 或 WMS URL。'); return; }
-      const def = { id: `custom_${++state.customCount}`, group: 'custom', type: 'wms', name, desc: '使用者自訂的 WMS 圖層。', source: nodeId ? 'Landeshauptstadt Dresden' : url, license: nodeId ? 'dl-de/by-2-0' : '依來源', color: '#555', verified: false };
+      const name = $('#custom-wms-name').value.trim() || (nodeId ? `NodeId ${nodeId}` : 'WMS圖層');
+      if (!nodeId && !url) { alert('請填NodeId或WMS URL。'); return; }
+      const def = { id: `custom_${++state.customCount}`, group: 'custom', type: 'wms', name, desc: '使用者自訂的WMS圖層。', source: nodeId ? 'Landeshauptstadt Dresden' : url, license: nodeId ? 'dl-de/by-2-0' : '依來源', color: '#555', verified: false };
       if (nodeId) def.nodeId = nodeId; else def.url = url + (url.includes('?') ? '&' : '?');
       if (layersParam) def.layers = layersParam;
       registerCustom(def);
@@ -707,7 +707,7 @@
     $('#custom-geojson-file').addEventListener('change', (ev) => {
       const f = ev.target.files[0]; if (!f) return;
       const r = new FileReader();
-      r.onload = () => { try { registerCustomGeoJSON(JSON.parse(r.result), f.name); } catch (e) { alert('不是有效的 GeoJSON。'); } };
+      r.onload = () => { try { registerCustomGeoJSON(JSON.parse(r.result), f.name); } catch (e) { alert('不是有效的GeoJSON。'); } };
       r.readAsText(f);
     });
   }
@@ -725,7 +725,7 @@
   }
 
   function registerCustomGeoJSON(fc, name) {
-    const def = { id: `custom_${++state.customCount}`, group: 'custom', type: 'custom', name, desc: '使用者匯入的 GeoJSON。', source: '使用者', license: '依來源', color: '#e67e22' };
+    const def = { id: `custom_${++state.customCount}`, group: 'custom', type: 'custom', name, desc: '使用者匯入的GeoJSON。', source: '使用者', license: '依來源', color: '#e67e22' };
     const layer = L.geoJSON(fc, {
       pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius: 5, color: '#fff', weight: 1, fillColor: def.color, fillOpacity: 0.9 }),
       style: () => ({ color: def.color, weight: 2, fillOpacity: 0.25 }),
@@ -759,7 +759,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* 搜尋（Nominatim）與 Stadtteil 快速跳轉                                */
+  /* 搜尋（Nominatim）與Stadtteil快速跳轉                                */
   /* ------------------------------------------------------------------ */
   function setupSearch() {
     const input = $('#search');
@@ -796,7 +796,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* URL hash 狀態                                                        */
+  /* URL hash狀態                                                        */
   /* ------------------------------------------------------------------ */
   let hashLock = false;
   function writeHash() {

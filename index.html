@@ -16,7 +16,7 @@
       <span class="brand-sub">德勒斯登 · 都市規劃概覽</span>
     </div>
     <div class="searchbox">
-      <input id="search" type="search" placeholder="搜尋 Stadtteil、地址或地點（Nominatim）" autocomplete="off">
+      <input id="search" type="search" placeholder="搜尋Stadtteil、地址或地點（Nominatim）" autocomplete="off">
       <div id="search-results" class="results" hidden></div>
     </div>
     <div class="actions">
@@ -40,14 +40,14 @@
       </div>
       <div id="layer-list"></div>
       <p class="muted small footnote">
-        「官方 WMS」由 Landeshauptstadt Dresden（kommisdd.dresden.de）即時提供，依 NodeId 對應 opendata.dresden.de 的資料集；
-        「OSM」由 Overpass API 即時查詢 OpenStreetMap。點擊地圖可查詢已開啟官方圖層的屬性。
+        「官方WMS」由Landeshauptstadt Dresden（kommisdd.dresden.de）即時提供，依NodeId對應opendata.dresden.de的資料集；
+        「OSM」由Overpass API即時查詢OpenStreetMap。點擊地圖可查詢已開啟官方圖層的屬性。
       </p>
     </section>
 
     <section id="panel-overview" class="panel" hidden>
       <h2>市域概況</h2>
-      <p class="muted small">參考值，請以 Kommunale Statistikstelle Dresden 最新出版品（Stadtteilkatalog、Statistisches Jahrbuch）為準。</p>
+      <p class="muted small">參考值，請以Kommunale Statistikstelle Dresden最新出版品（Stadtteilkatalog、Statistisches Jahrbuch）為準。</p>
       <div id="facts"></div>
       <h2>規劃情境</h2>
       <p class="muted small">一鍵套用常用圖層組合。</p>
@@ -55,10 +55,10 @@
       <h2>怎麼用</h2>
       <ol class="small howto">
         <li>先開「Stadtteile」當骨架，再疊法定計畫（B-Plan）或設施圖層。</li>
-        <li>點任一 Stadtteil：右側「統計」顯示面積、所屬 Stadtbezirk 與各設施數。</li>
-        <li>「統計」頁籤可依 Stadtteil 或 Stadtbezirk 排序設施密度（/km²）。</li>
-        <li>「資料」頁籤可貼上 opendata.dresden.de 的 CSV（如 Einwohner ab Stadtteil）做 choropleth。</li>
-        <li>其他官方資料集：在 opendata.dresden.de 找到 WMS 連結的 NodeId，於「資料」頁籤加入。</li>
+        <li>點任一Stadtteil：右側「統計」顯示面積、所屬Stadtbezirk與各設施數。</li>
+        <li>「統計」頁籤可依Stadtteil或Stadtbezirk排序設施密度（/km²）。</li>
+        <li>「資料」頁籤可貼上opendata.dresden.de的CSV（如Einwohner ab Stadtteil）做choropleth。</li>
+        <li>其他官方資料集：在opendata.dresden.de找到WMS連結的NodeId，於「資料」頁籤加入。</li>
       </ol>
     </section>
 
@@ -68,35 +68,35 @@
       <div class="row">
         <select id="stats-layer"></select>
       </div>
-      <label class="row small"><input type="checkbox" id="stats-bezirk"> 依 Stadtbezirk / Ortschaft 彙整</label>
+      <label class="row small"><input type="checkbox" id="stats-bezirk"> 依Stadtbezirk / Ortschaft彙整</label>
       <div id="stats-table" data-sort="val" data-dir="desc"></div>
       <div id="choro-legend" class="card" hidden></div>
     </section>
 
     <section id="panel-data" class="panel" hidden>
       <h2>匯入指標（CSV → choropleth）</h2>
-      <p class="muted small">貼上含 Stadtteil 代碼（01–99）或名稱欄位的 CSV，例如 opendata.dresden.de 的「Einwohner ab Stadtteil」。分隔符號自動偵測（; , Tab）。</p>
+      <p class="muted small">貼上含Stadtteil代碼（01–99）或名稱欄位的CSV，例如opendata.dresden.de的「Einwohner ab Stadtteil」。分隔符號自動偵測（; , Tab）。</p>
       <textarea id="csv-text" rows="6" placeholder="Stadtteil;Einwohner&#10;01;7100&#10;02;7500&#10;..."></textarea>
       <div class="row"><input type="file" id="csv-file" accept=".csv,.txt,.tsv"></div>
       <div class="row"><label class="small">鍵欄位</label><select id="csv-key"></select></div>
       <div class="row"><label class="small">數值欄位</label><select id="csv-val"></select></div>
-      <label class="row small"><input type="checkbox" id="csv-perkm2"> 換算為每 km²（密度）</label>
+      <label class="row small"><input type="checkbox" id="csv-perkm2"> 換算為每km²（密度）</label>
       <label class="row small"><input type="checkbox" id="csv-additive" checked> 數值可加總（人口、戶數等；比率請取消勾選）</label>
       <div class="row"><button id="csv-apply">套用</button><button id="csv-clear" class="ghost">清除</button></div>
       <p id="csv-info" class="small muted"></p>
 
-      <h2>加入官方 WMS 圖層</h2>
-      <p class="muted small">在 opendata.dresden.de 任一資料集頁面找到「WMS」連結，複製網址中的 <code>NodeId</code> 數字。圖層名稱通常可自動偵測；若無法顯示，請自 GetCapabilities 查 <code>&lt;Name&gt;</code> 後填入。</p>
-      <div class="row"><label class="small">NodeId</label><input id="custom-nodeid" type="text" placeholder="例如 489"></div>
-      <div class="row"><label class="small">或 WMS URL</label><input id="custom-wms-url" type="url" placeholder="https://…/ogc.ashx?NodeId=…&Service=WMS"></div>
+      <h2>加入官方WMS圖層</h2>
+      <p class="muted small">在opendata.dresden.de任一資料集頁面找到「WMS」連結，複製網址中的 <code>NodeId</code> 數字。圖層名稱通常可自動偵測；若無法顯示，請自GetCapabilities查 <code>&lt;Name&gt;</code> 後填入。</p>
+      <div class="row"><label class="small">NodeId</label><input id="custom-nodeid" type="text" placeholder="例如489"></div>
+      <div class="row"><label class="small">或WMS URL</label><input id="custom-wms-url" type="url" placeholder="https://…/ogc.ashx?NodeId=…&Service=WMS"></div>
       <div class="row"><label class="small">LAYERS</label><input id="custom-wms-layers" type="text" placeholder="（選填）"></div>
       <div class="row"><label class="small">顯示名稱</label><input id="custom-wms-name" type="text" placeholder="（選填）"></div>
-      <div class="row"><button id="custom-wms-add">加入 WMS</button></div>
+      <div class="row"><button id="custom-wms-add">加入WMS</button></div>
 
-      <h2>加入 GeoJSON</h2>
+      <h2>加入GeoJSON</h2>
       <div class="row"><label class="small">URL</label><input id="custom-geojson-url" type="url" placeholder="https://…/xxx.geojson"></div>
       <div class="row"><label class="small">名稱</label><input id="custom-geojson-name" type="text" placeholder="（選填）"></div>
-      <div class="row"><button id="custom-geojson-add">從 URL 加入</button></div>
+      <div class="row"><button id="custom-geojson-add">從URL加入</button></div>
       <div class="row"><label class="small">或上傳檔案</label><input type="file" id="custom-geojson-file" accept=".geojson,.json"></div>
 
       <h2>常用官方資料集</h2>
