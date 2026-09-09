@@ -1,5 +1,7 @@
 # Dresden Open Data Layers｜德勒斯登開放資料圖層
 
+作者：Yun-Ching Wu｜吳昀慶｜D15544002@ntu.edu.tw
+
 > 給都市規劃師的德勒斯登（Dresden）概覽地圖：把Landeshauptstadt Dresden的官方開放資料（WMS）、OpenStreetMap的即時查詢，以及Stadtteil統計分區骨架疊在同一張圖上，附分區統計與CSV choropleth。
 
 純靜態網頁，不需後端、不需建置：開啟 `index.html`（建議用本機HTTP伺服器）或部署到GitHub Pages即可。

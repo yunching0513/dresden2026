@@ -198,6 +198,9 @@ body.collapsed .hoverbox { left: 12px; }
 .city-model-heading .eyebrow { font: 10px ui-monospace, monospace; letter-spacing: .2em; color: #d9bf9d; }
 .city-model-heading h2 { font-family: Georgia, 'Noto Serif TC', serif; font-size: 26px; font-weight: 500; color: inherit; margin: 14px 0 8px; }
 .city-model-heading p { color: #d4dfdf; font-size: 12px; }
+.city-model-heading .author { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.18); color: #e8e0d2; font-size: 11px; letter-spacing: .02em; }
+.city-model-heading .author a { color: #f0d9b8; text-decoration: none; }
+.city-model-heading .author a:hover { text-decoration: underline; }
 .model-status { border-left: 3px solid #ce9b62; padding: 8px 10px; background: #f4f1eb; font-size: 12px; }
 .model-places { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 18px 0; }
 .model-places button { text-align: left; padding: 12px !important; background: #eef2f1 !important; color: #213d46 !important; border: 1px solid #dbe2df !important; }
