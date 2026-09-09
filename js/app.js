@@ -36,7 +36,7 @@
   /* 地圖初始化                                                           */
   /* ------------------------------------------------------------------ */
   function initMap() {
-    const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 9, maxZoom: 19 })
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, zoomSnap: 0, minZoom: 9, maxZoom: 19 })
       .setView([51.05, 13.74], 12);
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
@@ -54,7 +54,7 @@
       maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
     });
     state.baseLayers = { 'Positron（淺色）': positron, 'OpenStreetMap': osm, 'Dark': dark, 'OpenTopoMap': topo };
-    positron.addTo(map);
+    osm.addTo(map);
     L.control.layers(state.baseLayers, null, { position: 'topright', collapsed: true }).addTo(map);
 
     map.attributionControl.addAttribution('Datenquelle: <a href="https://opendata.dresden.de">Landeshauptstadt Dresden</a> (dl-de/by-2-0)');
@@ -802,8 +802,11 @@
   function writeHash() {
     if (hashLock || !state.map) return;
     const ids = Object.keys(state.layers).filter((id) => state.layers[id].def.type !== 'custom' && state.map.hasLayer(state.layers[id].leaflet || state.stLayer));
-    const c = state.map.getCenter();
-    history.replaceState(null, '', `#l=${ids.join(',')}&c=${c.lat.toFixed(4)},${c.lng.toFixed(4)},${state.map.getZoom()}`);
+    const view = window.DD3D && window.DD3D.camera();
+    const c = view ? view.center : state.map.getCenter();
+    const zoom = view ? view.zoom : state.map.getZoom();
+    const mode = view ? `&v=3d&p=${view.pitch.toFixed(1)}&b=${view.bearing.toFixed(1)}` : '&v=2d';
+    history.replaceState(null, '', `#l=${ids.join(',')}&c=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${zoom.toFixed(2)}${mode}`);
   }
   function readHash() {
     const h = location.hash.slice(1);
@@ -826,7 +829,7 @@
     $('#sidebar-toggle').addEventListener('click', () => { document.body.classList.toggle('collapsed'); setTimeout(() => state.map.invalidateSize(), 250); });
     $('#stats-layer').addEventListener('change', renderStatsTable);
     $('#stats-bezirk').addEventListener('change', renderStatsTable);
-    $('#btn-print').addEventListener('click', () => window.print());
+    $('#btn-print').addEventListener('click', () => { window.DD3D.close(); window.print(); });
     $('#btn-reset').addEventListener('click', () => { state.map.setView([51.05, 13.74], 12); state.selectedCode = null; state.stLayer.setStyle(styleStadtteil); });
     $('#btn-clear').addEventListener('click', () => { Object.keys(state.layers).forEach((id) => toggleLayer(id, false)); });
     $('#btn-share').addEventListener('click', async () => {
@@ -857,6 +860,7 @@
     const ids = h && h.l !== undefined ? h.l.split(',').filter(Boolean) : C.layers.filter((l) => l.default).map((l) => l.id);
     ids.forEach((id) => toggleLayer(id, true));
     hashLock = false;
+    window.DD3D.init({ state, writeHash, switchTab }, h);
     writeHash();
     refreshStatsSelect();
   }

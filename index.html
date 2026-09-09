@@ -6,6 +6,7 @@
   <title>Dresden Open Data Layers｜德勒斯登開放資料圖層</title>
   <meta name="description" content="給都市規劃師的德勒斯登（Dresden）開放資料圖層檢視器：行政區、法定計畫、交通、公共設施、綠地與洪水風險。">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -20,6 +21,7 @@
       <div id="search-results" class="results" hidden></div>
     </div>
     <div class="actions">
+      <button id="btn-3d" aria-pressed="false">開啟 3D</button>
       <button id="btn-share" class="ghost">分享檢視</button>
       <button id="btn-print" class="ghost">列印</button>
     </div>
@@ -27,11 +29,43 @@
 
   <aside class="sidebar">
     <nav class="tabs">
+      <button class="tab" data-tab="3d">3D 建築</button>
       <button class="tab active" data-tab="layers">圖層</button>
       <button class="tab" data-tab="overview">概況</button>
       <button class="tab" data-tab="stats">統計</button>
       <button class="tab" data-tab="data">資料</button>
     </nav>
+
+
+    <section id="panel-3d" class="panel" hidden>
+      <div class="city-model-heading"><span class="eyebrow">DRESDEN / CITY MODEL</span><h2>從街廓，讀懂城市。</h2><p>官方建築量體 · GeoSN LoD1</p></div>
+      <p id="buildings-status" class="model-status" role="status" aria-live="polite">開啟 3D 以瀏覽建築模型。</p>
+      <div class="model-places">
+        <button data-place="13.740,51.052">Altstadt<br><small>舊城・易北河</small></button>
+        <button data-place="13.752,51.066">Neustadt<br><small>新城街廓</small></button>
+        <button data-place="13.729,51.028">TU Dresden<br><small>大學周邊</small></button>
+        <button id="model-coverage">資料範圍<br><small>查看已收錄區塊</small></button>
+      </div>
+      <h2>視角與量體</h2>
+      <label class="row small"><input id="buildings-visible" type="checkbox" checked> 顯示官方建築量體</label>
+      <label class="row small" for="model-pitch">傾斜角度 <output id="model-pitch-value">55°</output></label>
+      <input id="model-pitch" type="range" min="0" max="70" value="55" aria-label="傾斜角度">
+      <div class="row"><button id="model-north" class="ghost">北向復位</button><button id="model-retry" class="ghost">重新載入</button></div>
+      <label class="row small" for="model-color">量體配色</label>
+      <select id="model-color"><option value="height">依高度分色</option><option value="white">白模</option></select>
+      <div class="height-legend"><span>低</span><i></i><span>高</span></div>
+      <p class="small muted">高度分色：0 / 10 / 20 / 40 / 80 公尺。高度比例 1:1。</p>
+      <div class="model-note small">拖曳平移、滾輪縮放；按住滑鼠右鍵拖曳旋轉與傾斜。觸控裝置可雙指操作，也可使用上方滑桿。</div>
+      <h2>資料與判讀</h2>
+      <p class="small">建築為官方 LoD1 方塊模型，保留輪廓與模型高度；屋頂已簡化。點擊建築查看高度及原始資料年份。地面採平面基準，尚未套用地形高程。每次最多載入鄰近 16 個區塊；移動或放大可瀏覽其他區域。</p>
+      <p id="model-inventory" class="small muted"></p>
+      <p class="small muted">「圖層」中已開啟的 WMS、設施與分區會同步至 3D。CSV 分級設色、WMS 屬性查詢與列印請切回 2D 使用。</p>
+      <ul class="small links">
+        <li><a href="https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html" target="_blank" rel="noopener">GeoSN 官方 LoD1 / LoD2 下載</a></li>
+        <li><a href="https://www.geodaten.sachsen.de/batch-download-4719.html" target="_blank" rel="noopener">官方批次下載（可取得屋頂細節 LoD2）</a></li>
+        <li><a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">GeoSN · dl-de/by-2-0 授權</a></li>
+      </ul>
+    </section>
 
     <section id="panel-layers" class="panel">
       <div class="toolbar">
@@ -112,12 +146,14 @@
   </aside>
 
   <main id="map" role="application" aria-label="地圖"></main>
+  <section id="map3d" role="region" aria-label="Dresden 3D 建築地圖" hidden></section>
   <div id="hoverbox" class="hoverbox" hidden></div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="data/stadtteile.js"></script>
   <script src="js/geo.js"></script>
   <script src="js/catalog.js"></script>
+  <script src="js/buildings3d.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
