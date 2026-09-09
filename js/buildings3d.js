@@ -1,0 +1,192 @@
+/* GeoSN LoD1 city model. Local, independently loaded 2 km GeoJSON tiles. */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const empty = () => ({ type: 'FeatureCollection', features: [] });
+  const heightColor = ['interpolate', ['linear'], ['get', 'height_m'], 0, '#dce4df', 10, '#b0c8c0', 20, '#739c99', 40, '#43676d', 80, '#cb9560'];
+  let app, map, active = false, ready = false, syncing = false, manifest, enginePromise, openVersion = 0;
+  const tiles = new Map(), overlays = new Map();
+  let tileTimer, overlayTimer, popup;
+  function status(message) { $('buildings-status').textContent = message; }
+  function camera() { return active && map ? { center: map.getCenter(), zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() } : null; }
+  function engine() {
+    if (window.maplibregl) return Promise.resolve();
+    if (!enginePromise) enginePromise = new Promise((resolve,reject) => {
+      const script = document.createElement('script'); script.src = 'vendor/maplibre/maplibre-gl.js';
+      script.onload = resolve; script.onerror = () => { script.remove(); enginePromise = null; reject(new Error('無法載入 3D 引擎')); };
+      document.head.appendChild(script);
+    });
+    return enginePromise;
+  }
+  async function open(initial) {
+    const version = ++openVersion;
+    $('btn-3d').disabled = true;
+    app.switchTab('3d'); status('正在啟動 3D 建築地圖…');
+    try {
+      await engine();
+      if (version !== openVersion) return;
+      active = true; $('map').hidden = true; $('map3d').hidden = false;
+      $('btn-3d').textContent = '切回 2D'; $('btn-3d').setAttribute('aria-pressed', 'true');
+      const c = app.state.map.getCenter();
+      const hasCamera = initial && initial.c;
+      const zoom = hasCamera ? app.state.map.getZoom() : Math.max(15.5, app.state.map.getZoom());
+      if (!map) {
+        map = new maplibregl.Map({ container: 'map3d', center: [c.lng,c.lat], zoom, pitch: number(initial && initial.p,55,0,70), bearing: number(initial && initial.b,-25,-180,180), maxPitch:70, minZoom:9, maxZoom:19,
+          style: { version:8, sources:{ base:{ type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19, attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } }, layers:[{id:'base',type:'raster',source:'base',paint:{'raster-saturation':-0.8,'raster-opacity':0.8}}], light:{anchor:'viewport',color:'#fff7e9',intensity:0.4,position:[1.5,200,40]} },
+          attributionControl: { customAttribution:'建築：<a href="https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html">GeoSN</a> · <a href="https://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a> · LoD1 / 平面地面' }
+        });
+        map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-right');
+        map.addControl(new maplibregl.ScaleControl({unit:'metric'}), 'bottom-right');
+        map.on('load', async () => {
+          ready = true;
+          syncOverlays();
+          await loadManifest();
+        });
+        map.on('moveend', () => {
+          if (!active) return;
+          if (!syncing) {
+            syncing = true; const c = map.getCenter();
+            app.state.map.setView([c.lat,c.lng],map.getZoom(),{animate:false}); syncing = false;
+          }
+          $('model-pitch').value = Math.round(map.getPitch()); $('model-pitch-value').textContent = Math.round(map.getPitch())+'°';
+          app.writeHash(); scheduleTiles();
+        });
+        map.on('error', e => {
+          if (e.sourceId && tiles.has(e.sourceId)) { tiles.get(e.sourceId).error = true; report(); }
+        });
+        map.on('click', inspectBuilding);
+        map.getCanvas().addEventListener('webglcontextlost', () => { status('3D 顯示資源已中斷，請切回 2D 或重新整理頁面。'); });
+      } else {
+        map.resize(); map.jumpTo({center:[c.lng,c.lat],zoom:app.state.map.getZoom()}); syncOverlays(); scheduleTiles();
+      }
+      app.writeHash();
+    } catch (error) {
+      close(); if (map && !ready) { map.remove(); map=null; }
+      status('無法啟動 3D：'+error.message+'。仍可使用 2D；請確認瀏覽器支援 WebGL。');
+    } finally { $('btn-3d').disabled = false; }
+  }
+  function number(value,fallback,min,max) { const n=value == null ? NaN : Number(value); return Number.isFinite(n) ? Math.max(min,Math.min(max,n)) : fallback; }
+  function close() {
+    ++openVersion;
+    active = false; $('map').hidden = false; $('map3d').hidden = true;
+    $('btn-3d').textContent = '開啟 3D'; $('btn-3d').setAttribute('aria-pressed','false');
+    app.state.map.invalidateSize(); app.writeHash();
+  }
+  async function loadManifest() {
+    try {
+      const response = await fetch('data/buildings/manifest.json');
+      if (!response.ok) throw new Error('HTTP '+response.status);
+      manifest = await response.json();
+      $('model-inventory').textContent = `收錄 ${manifest.tiles.length} 個區塊、${manifest.tiles.reduce((sum,t)=>sum+t.count,0).toLocaleString()} 筆建築／建築部分。取得日期：${manifest.retrieved}。資料年份依建築所屬區塊而異。`;
+      const fc = {type:'FeatureCollection',features:manifest.tiles.map(t=>({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[t.ring]}}))};
+      if (!map.getSource('coverage')) {
+        map.addSource('coverage',{type:'geojson',data:fc});
+        map.addLayer({id:'coverage',type:'line',source:'coverage',paint:{'line-color':'#a87a45','line-width':1,'line-opacity':0.45,'line-dasharray':[3,3]}});
+      }
+      updateTiles();
+    } catch (error) { status('建築目錄載入失敗，請按「重新載入」。'+error.message); }
+  }
+  function scheduleTiles() { clearTimeout(tileTimer); tileTimer=setTimeout(updateTiles,180); }
+  function report() {
+    if (!manifest) return;
+    if (!$('buildings-visible').checked) { status('建築量體已關閉。'); return; }
+    if (map.getZoom()<13) { status('已顯示資料區塊範圍；放大至街區尺度即可載入建築。'); return; }
+    const entries = [...tiles.values()];
+    const failed=entries.filter(t=>t.error).length, loading=entries.filter(t=>!t.data&&!t.error).length;
+    const count=entries.reduce((sum,t)=>sum+(t.data ? t.data.features.length : 0),0);
+    status(failed ? `${failed} 個區塊載入失敗；已取得 ${count.toLocaleString()} 筆，按「重新載入」重試。` : loading ? `正在載入 ${loading} 個區塊… 已取得 ${count.toLocaleString()} 筆。` : count ? `已載入 ${count.toLocaleString()} 筆量體 · 點擊查看高度` : '目前視野沒有已收錄建築；可按「資料範圍」查看覆蓋區域。');
+  }
+  function removeTile(id) {
+    const entry=tiles.get(id); if(entry && entry.controller) entry.controller.abort();
+    if(map.getLayer(id)) map.removeLayer(id);
+    if(map.getSource(id)) map.removeSource(id);
+    tiles.delete(id);
+  }
+  async function addTile(meta) {
+    const id='building-'+meta.id, controller=new AbortController();
+    const entry={controller,data:null,error:false}; tiles.set(id,entry);
+    try {
+      const res=await fetch(`data/buildings/${meta.id}.geojson`,{signal:controller.signal});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data=await res.json(); if(tiles.get(id)!==entry) return;
+      entry.data=data;
+      map.addSource(id,{type:'geojson',data});
+      map.addLayer({id,type:'fill-extrusion',source:id,minzoom:13,layout:{visibility:$('buildings-visible').checked?'visible':'none'},paint:{'fill-extrusion-height':['get','height_m'],'fill-extrusion-base':0,'fill-extrusion-color':$('model-color').value==='white'?'#e6e2d7':heightColor,'fill-extrusion-opacity':0.96}});
+    } catch (error) { if(error.name!=='AbortError' && tiles.get(id)===entry) entry.error=true; }
+    report();
+  }
+  function updateTiles() {
+    if(!active||!ready||!manifest) return;
+    const b=map.getBounds(), c=map.getCenter();
+    // Bound memory at city-scale zooms. Distances are only for priority, not measurement.
+    const candidates=map.getZoom()<13||!$('buildings-visible').checked ? [] : manifest.tiles.filter(t=>t.bounds[0]<=b.getEast()&&t.bounds[2]>=b.getWest()&&t.bounds[1]<=b.getNorth()&&t.bounds[3]>=b.getSouth()).sort((a,b)=>distance(a,c)-distance(b,c)).slice(0,16);
+    const desired=new Set(candidates.map(t=>'building-'+t.id));
+    for(const id of tiles.keys()) if(!desired.has(id)) removeTile(id);
+    candidates.forEach(t=>{if(!tiles.has('building-'+t.id)) addTile(t);});
+    report();
+  }
+  function distance(t,c) { return ((t.bounds[0]+t.bounds[2])/2-c.lng)**2+((t.bounds[1]+t.bounds[3])/2-c.lat)**2; }
+  function inspectBuilding(event) {
+    const ids=[...tiles.keys()].filter(id=>map.getLayer(id)); if(!ids.length) return;
+    const feature=map.queryRenderedFeatures(event.point,{layers:ids})[0]; if(!feature) return;
+    const p=feature.properties, content=document.createElement('div'); content.className='building-popup';
+    const h=document.createElement('strong'); h.textContent=Number(p.height_m).toFixed(1)+' m'; content.appendChild(h);
+    const desc=document.createElement('p'); desc.textContent=`官方模型高度（非樓層推估）\n模型製作：${p.production}\n雷射資料：${p.laser}｜輪廓：${p.footprints}`; desc.style.whiteSpace='pre-line'; content.appendChild(desc);
+    const id=document.createElement('p'); id.className='building-id'; id.textContent=p.id; content.appendChild(id);
+    if(popup) popup.remove(); popup=new maplibregl.Popup().setLngLat(event.lngLat).setDOMContent(content).addTo(map);
+  }
+  function syncOverlays() {
+    if(!active||!ready) return;
+    for(const ids of overlays.values()) {
+      ids.layers.forEach(id=>{if(map.getLayer(id)) map.removeLayer(id);});
+      if(map.getSource(ids.source)) map.removeSource(ids.source);
+    }
+    overlays.clear();
+    const before=[...tiles.keys()].find(id=>map.getLayer(id));
+    Object.entries(app.state.layers).forEach(([key,entry])=>{
+      const l=entry.leaflet; if(!l||!app.state.map.hasLayer(l)) return;
+      const id='overlay-'+key, color=entry.def.color||'#48697a';
+      try {
+        if(l.wmsParams) {
+          const url=new URL(l._url,location.href);
+          // Preserve dataset identifiers; replace only WMS request parameters.
+          for(const k of [...url.searchParams.keys()]) if(['service','request','version','layers','styles','format','transparent','width','height','crs','srs','bbox'].includes(k.toLowerCase())) url.searchParams.delete(k);
+          const params={service:'WMS',request:'GetMap',version:'1.1.1',layers:l.wmsParams.layers,styles:l.wmsParams.styles||'',format:'image/png',transparent:'true',width:256,height:256,srs:'EPSG:3857',bbox:'{bbox-epsg-3857}'};
+          Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+          map.addSource(id,{type:'raster',tiles:[url.href.replace('%7Bbbox-epsg-3857%7D','{bbox-epsg-3857}')],tileSize:256,attribution:entry.def.source});
+          map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':l.options.opacity??0.8}},before);
+          overlays.set(key,{source:id,layers:[id]});
+        } else if(l.toGeoJSON) {
+          map.addSource(id,{type:'geojson',data:l.toGeoJSON()});
+          const layers=[{id:id+'-fill',type:'fill',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':color,'fill-opacity':0.12}}, {id:id+'-line',type:'line',filter:['!=',['geometry-type'],'Point'],paint:{'line-color':color,'line-width':1.2}}, {id:id+'-point',type:'circle',filter:['==',['geometry-type'],'Point'],paint:{'circle-color':color,'circle-radius':4,'circle-stroke-width':1,'circle-stroke-color':'#fff'}}];
+          layers.forEach(layer=>map.addLayer({...layer,source:id},before));
+          overlays.set(key,{source:id,layers:layers.map(l=>l.id)});
+        }
+      } catch(error) { console.warn('3D overlay unavailable',key,error); }
+    });
+  }
+  function init(context,hash) {
+    app=context;
+    $('btn-3d').addEventListener('click',()=>active?close():open());
+    $('model-pitch').addEventListener('input',()=>{const n=+$('model-pitch').value;$('model-pitch-value').textContent=n+'°';if(map) map.setPitch(n);});
+    $('model-north').addEventListener('click',()=>{if(map)map.easeTo({bearing:0});});
+    $('model-color').addEventListener('change',()=>{if(map)for(const id of tiles.keys())if(map.getLayer(id))map.setPaintProperty(id,'fill-extrusion-color',$('model-color').value==='white'?'#e6e2d7':heightColor);});
+    $('buildings-visible').addEventListener('change',updateTiles);
+    $('model-retry').addEventListener('click',()=>{
+      if(!active) {open();return;}
+      if(!manifest){loadManifest();return;}
+      for(const [id,t] of tiles)if(t.error)removeTile(id); updateTiles();
+    });
+    document.querySelectorAll('[data-place]').forEach(button=>button.addEventListener('click',async()=>{if(!active)await open();if(map&&active)map.flyTo({center:button.dataset.place.split(',').map(Number),zoom:16,pitch:55,bearing:-25});}));
+    $('model-coverage').addEventListener('click',()=>{if(!map||!manifest)return;const b=new maplibregl.LngLatBounds();manifest.tiles.forEach(t=>{b.extend(t.bounds.slice(0,2));b.extend(t.bounds.slice(2));});map.fitBounds(b,{padding:35,pitch:0,bearing:0});});
+    app.state.map.on('moveend',()=>{if(active&&map&&!syncing){const c=app.state.map.getCenter();syncing=true;map.jumpTo({center:[c.lng,c.lat],zoom:app.state.map.getZoom()});syncing=false;}});
+    const queueOverlays=()=>{clearTimeout(overlayTimer);overlayTimer=setTimeout(syncOverlays,100);};
+    app.state.map.on('layeradd layerremove',queueOverlays);
+    new MutationObserver(queueOverlays).observe($('layer-list'),{childList:true,subtree:true,characterData:true});
+    $('layer-list').addEventListener('input',queueOverlays);
+    new ResizeObserver(()=>{if(map)map.resize();}).observe($('map3d'));
+    // Explicit 2D share links retain 2D; new visits open the city model.
+    if(!hash||hash.v!=='2d')open(hash);
+  }
+  window.DD3D={init,camera,close};
+})();

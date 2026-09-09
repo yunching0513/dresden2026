@@ -4,6 +4,12 @@
 
 純靜態網頁，不需後端、不需建置：開啟 `index.html`（建議用本機HTTP伺服器）或部署到GitHub Pages即可。
 
+## 3D 城市建築量體
+
+新訪客預設進入 3D，可隨時切回原有 2D 圖台。已串接 GeoSN 官方 Dresden 市域 LoD1 建築資料，分成 117 個區塊按視野載入，提供高度分色／白模、傾斜與旋轉、地點捷徑、建築高度與來源年份查詢，並保存 3D 分享視角。
+
+模型是官方方塊量體，保留中庭與建築部分；沒有坡屋頂或地形起伏。WMS 與一般向量圖層可疊在 3D；CSV 分級設色、WMS 屬性查詢與列印使用 2D。資料年份不是 2026 現況。詳見 [資料來源、授權、LoD2 路徑與重建方式](docs/3D-DATA.md)。
+
 ## 功能
 
 | 頁籤 | 內容 |
@@ -60,11 +66,11 @@ python3 -m http.server 8000
 # 開啟 http://localhost:8000
 ```
 
-無外部相依；Leaflet 1.9.4已放在 `vendor/leaflet/`。
+前端免建置；Leaflet 1.9.4 與 MapLibre GL JS 5.6.1 已放在 `vendor/`，3D 引擎於開啟時才載入。建築資料隨站提供，底圖與 WMS 需網路。
 
 ## 部署到GitHub Pages
 
-`.github/workflows/pages.yml` 會在推送到 `main` 時自動部署整個repo為靜態站。首次使用請在repo Settings → Pages將Source設為「GitHub Actions」。
+`.github/workflows/pages.yml` 會在推送到目前預設分支 `claude/dresden-opendata-layer-309sn8` 或 `main` 時自動部署整個repo為靜態站。首次使用請在repo Settings → Pages將Source設為「GitHub Actions」。
 
 ## 專案結構
 
