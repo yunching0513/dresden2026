@@ -26,6 +26,7 @@
     </div>
     <div class="actions">
       <button id="btn-3d" aria-pressed="false">開啟 3D</button>
+      <button id="btn-split" class="ghost" aria-pressed="false">並列雙城</button>
       <button id="btn-share" class="ghost">分享檢視</button>
       <button id="btn-print" class="ghost">列印</button>
     </div>
@@ -118,6 +119,19 @@
     </section>
 
     <section id="panel-compare" class="panel" hidden>
+      <h2>並列地圖</h2>
+      <p class="muted small">左右同時開啟兩市地圖，並鎖定相同的地面比例尺：兩側的「1 px等於幾公尺」永遠一致，街廓大小可以直接目測比較。</p>
+      <div class="row"><button id="split-open">開啟並列地圖</button></div>
+      <div id="split-controls" hidden>
+        <div class="row"><label class="small" for="split-base">底圖</label><select id="split-base"></select></div>
+        <label class="row small"><input type="checkbox" id="split-sync"> 同步平移（移動一側，另一側跟著移動相同距離）</label>
+        <div class="row"><button id="split-reset" class="mini ghost">回到兩市中心</button></div>
+        <p id="split-scale" class="small muted"></p>
+        <h2>共同圖層</h2>
+        <p class="muted small">以相同的OSM查詢在兩側各畫一次；括號內為該市bbox範圍的物件數。</p>
+        <div id="split-layers"></div>
+      </div>
+
       <h2>雙城比較</h2>
       <p class="muted small">兩市使用<b>完全相同的OSM查詢</b>，各自以行政界線做點在多邊形內判斷，因此不會混入新北市或Radebeul等鄰接地區。</p>
       <div id="compare-heads" class="compare-heads"></div>
@@ -229,6 +243,16 @@
   </aside>
 
   <main id="map" role="application" aria-label="地圖"></main>
+  <section id="splitview" hidden aria-label="並列雙城地圖">
+    <div class="split-pane">
+      <div class="split-head"><b>🇩🇪 德勒斯登</b><span id="split-head-dresden" class="small muted"></span></div>
+      <div class="split-map" id="split-map-dresden"></div>
+    </div>
+    <div class="split-pane">
+      <div class="split-head"><b>🇹🇼 臺北市</b><span id="split-head-taipei" class="small muted"></span></div>
+      <div class="split-map" id="split-map-taipei"></div>
+    </div>
+  </section>
   <section id="map3d" role="region" aria-label="3D 建築地圖" hidden></section>
   <div id="hoverbox" class="hoverbox" hidden></div>
 
@@ -258,6 +282,7 @@
   <script src="js/buildings3d.js"></script>
   <script src="js/annotate.js"></script>
   <script src="js/compare.js"></script>
+  <script src="js/split.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

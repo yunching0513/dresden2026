@@ -108,6 +108,14 @@
   const order = ['dresden', 'taipei'];
   order.forEach((id) => { cities[id].catalog = (window.DD_CATALOGS || {})[id]; });
 
+  /* 並列地圖中兩市對應、但圖層id不同的主題 */
+  const splitPairs = [
+    { id: 'rail_lines', name: '軌道路網', layers: { dresden: 'osm_tram_lines', taipei: 'osm_metro_lines' } },
+    { id: 'rail_stops', name: '軌道站點', layers: { dresden: 'osm_tram_stops', taipei: 'osm_metro_stops' } },
+  ];
+
+  window.DD_BASEMAPS = CARTO;
+  window.DD_SPLIT_PAIRS = splitPairs;
   window.DD_CITIES = cities;
   window.DD_CITY_ORDER = order;
   window.DD_INDICATORS = indicators;

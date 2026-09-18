@@ -453,8 +453,8 @@
   const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
   const overpassCache = {};
 
-  function buildQuery(def) {
-    const bbox = state.city.bbox.join(',');
+  function buildQuery(def, city) {
+    const bbox = (city || state.city).bbox.join(',');
     if (def.rawQuery) return `[out:json][timeout:120];${def.rawQuery.replace(/\{\{bbox\}\}/g, bbox)}`;
     const q = def.query.replace(/\{\{bbox\}\}/g, bbox);
     if (def.geom === 'point') return `[out:json][timeout:120];(${q});out center tags;`;
@@ -521,19 +521,23 @@
     return `<div class="poi"><b>${name || '(未命名)'}</b> ${link}<table class="kv small">${rows}</table></div>`;
   }
 
+  /* 以某城市的bbox查詢OSM圖層；結果以「城市:圖層」為鍵快取，主地圖與並列地圖共用。 */
+  async function fetchOsm(cityId, def) {
+    const key = `${cityId}:${def.id}`;
+    if (!overpassCache[key]) {
+      const json = await runOverpass(buildQuery(def, CITIES[cityId]));
+      overpassCache[key] = osmToFeatures(json, def);
+    }
+    return overpassCache[key];
+  }
+
   async function addOverpass(def) {
     const id = def.id;
     const entry = { def, leaflet: null, status: 'loading' };
     state.layers[id] = entry;
     setStatus(id, '查詢OSM…', 'loading');
     try {
-      const cacheKey = `${state.cityId}:${id}`;
-      let fc = overpassCache[cacheKey];
-      if (!fc) {
-        const json = await runOverpass(buildQuery(def));
-        fc = osmToFeatures(json, def);
-        overpassCache[cacheKey] = fc;
-      }
+      const fc = await fetchOsm(state.cityId, def);
       if (!state.layers[id]) return; // 使用者已取消
       entry.features = fc;
       const renderer = L.canvas({ padding: 0.5 });
@@ -885,7 +889,8 @@
     const c = view ? view.center : state.map.getCenter();
     const zoom = view ? view.zoom : state.map.getZoom();
     const mode = view ? `&v=3d&p=${view.pitch.toFixed(1)}&b=${view.bearing.toFixed(1)}` : '&v=2d';
-    history.replaceState(null, '', `#city=${state.cityId}&l=${ids.join(',')}&c=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${zoom.toFixed(2)}${mode}`);
+    const split = (window.DDSplit && window.DDSplit.hashState()) || '';
+    history.replaceState(null, '', `#city=${state.cityId}&l=${ids.join(',')}&c=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${zoom.toFixed(2)}${mode}${split}`);
   }
   function readHash() {
     const h = location.hash.slice(1);
@@ -1028,11 +1033,13 @@
     hashLock = false;
     window.DDAnnotate.init({ state, switchTab });
     window.DDCompare.init({ state, switchTab, switchCity, runOverpass, osmToFeatures, el, downloadText });
-    window.DD3D.init({ state, writeHash, switchTab }, h);
+    // 分享連結指定並列模式時不自動開啟3D
+    window.DD3D.init({ state, writeHash, switchTab }, h && h.split === '1' ? Object.assign({}, h, { v: '2d' }) : h);
+    window.DDSplit.init({ state, switchTab, el, fetchOsm, popupHtml, writeHash }, h);
     writeHash();
     refreshStatsSelect();
   }
 
   document.addEventListener('DOMContentLoaded', boot);
-  window.DDApp = { state, toggleLayer, selectStadtteil, applyPreset, switchCity };
+  window.DDApp = { state, toggleLayer, selectStadtteil, applyPreset, switchCity, fetchOsm, switchTab };
 })();
