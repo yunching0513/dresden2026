@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/taipei-dresden-compare]
+    branches: [main, claude/taipei-dresden-compare, claude/dresden-opendata-layer-309sn8]
   workflow_dispatch:
 
 permissions:

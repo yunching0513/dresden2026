@@ -111,7 +111,12 @@ python3 -m http.server 8000
 
 ## 部署到GitHub Pages
 
-`.github/workflows/pages.yml` 會在推送到 `claude/taipei-dresden-compare` 或 `main` 時自動部署整個repo為靜態站。Source需在repo Settings → Pages設為「GitHub Actions」；若部署分支不是預設分支，還需在Settings → Environments → `github-pages` 的Deployment branches允許該分支。
+`.github/workflows/pages.yml` 會在推送到 `main`、`claude/taipei-dresden-compare` 或 `claude/dresden-opendata-layer-309sn8` 時自動部署整個repo為靜態站。Source需在repo Settings → Pages設為「GitHub Actions」。
+
+注意：`github-pages` 環境預設只允許**預設分支**部署。若要讓 `claude/taipei-dresden-compare` 上線，需二擇一：
+
+- Settings → General → Default branch 改為 `claude/taipei-dresden-compare`；或
+- Settings → Environments → `github-pages` → Deployment branches 加入該分支。
 
 ## 專案結構
 
