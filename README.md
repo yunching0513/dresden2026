@@ -1,26 +1,46 @@
-# Dresden Open Data Layers｜德勒斯登開放資料圖層
+# Dresden × Taipei Open Data Layers｜雙城開放資料圖層
 
 作者：Yun-Ching Wu｜吳昀慶｜D15544002@ntu.edu.tw
 
-> 給都市規劃師的德勒斯登（Dresden）概覽地圖：把Landeshauptstadt Dresden的官方開放資料（WMS）、OpenStreetMap的即時查詢，以及Stadtteil統計分區骨架疊在同一張圖上，附分區統計與CSV choropleth。
+> 給都市規劃師的雙城概覽地圖：德勒斯登（Dresden）與臺北市可隨時切換，各自疊上官方開放資料與OpenStreetMap即時查詢，並以完全相同的OSM查詢產生跨城市可比指標。
+
+兩市面積相近（328.8 km²對271.8 km²），人口卻相差四倍以上，是觀察密度、運具與生活機能配置差異的現成對照組。
 
 純靜態網頁，不需後端、不需建置：開啟 `index.html`（建議用本機HTTP伺服器）或部署到GitHub Pages即可。
 
+## 切換城市與雙城比較
+
+標題列的城市按鈕會開啟切換視窗，點城市卡片即可換城市：圖層目錄、底圖、統計單元、市域概況、3D模型與搜尋範圍會一併切換，註記則跨城市保留。目前城市記在URL hash（`#city=…`）與瀏覽器，分享連結會帶著城市一起走。
+
+「比較」頁籤提供三個層次：
+
+1. **同尺度輪廓**：兩市界線以相同的公里／像素比例並排，規模差異一眼可見。
+2. **基本數字**：面積、人口、密度、統計單元與海拔範圍，附倍數欄。
+3. **OSM可比指標**：14項指標（學校、幼兒園、超市、便利商店、藥局、醫院、圖書館、宗教設施、遊戲場、軌道站點、公車站、共享單車站、公園綠地面積、自行車道長度），兩市跑**完全相同**的Overpass查詢，再以各市行政界線做點在多邊形內判斷，因此不會混入新北市或Radebeul等鄰接地區。可切換「每10萬人／每km²／絕對數量」，並匯出CSV。
+
+指標結果存在瀏覽器localStorage，重新整理不會重跑。OSM由志願者維護，兩地標記習慣與完整度不同（例如臺北的便利商店、德勒斯登的Kleingarten），指標適合看數量級與結構差異，不適合當官方統計引用。
+
 ## 3D 城市建築量體
 
-新訪客預設進入 3D，可隨時切回原有 2D 圖台。已串接 GeoSN 官方 Dresden 市域 LoD1 建築資料，分成 117 個區塊按視野載入，提供高度分色／白模、傾斜與旋轉、地點捷徑、建築高度與來源年份查詢，並保存 3D 分享視角。
+新訪客預設進入 3D，可隨時切回原有 2D 圖台。提供高度分色／白模、傾斜與旋轉、地點捷徑、建築查詢，並保存 3D 分享視角。兩市的資料來源不同：
 
-模型是官方方塊量體，保留中庭與建築部分；沒有坡屋頂或地形起伏。WMS 與一般向量圖層可疊在 3D；CSV 分級設色、WMS 屬性查詢與列印使用 2D。資料年份不是 2026 現況。詳見 [資料來源、授權、LoD2 路徑與重建方式](docs/3D-DATA.md)。
+| 城市 | 來源 | 說明 |
+|---|---|---|
+| 德勒斯登 | GeoSN 官方 LoD1 | 市域建築分成 117 個區塊隨站附帶，按視野載入；官方方塊量體，保留中庭與建築部分，沒有坡屋頂或地形起伏。詳見 [資料來源、授權與重建方式](docs/3D-DATA.md)。 |
+| 臺北市 | OpenStreetMap 輪廓 | 放大至 z15 以上時向 Overpass 即時查詢建築輪廓；高度優先取 `height` 標籤，其次以樓層數 × 3.2 公尺推估，皆無則代入 9 公尺。**高度為推估值，不可作為法定高度或日照分析依據。** |
+
+WMS、官方圖磚與一般向量圖層可疊在 3D；CSV 分級設色、WMS 屬性查詢與列印使用 2D。
 
 ## 功能
 
 | 頁籤 | 內容 |
 |---|---|
-| **圖層** | 七大主題、40個圖層：行政區與統計單元／土地使用與都市計畫／住宅、人口與開發動態／交通與運具／公共設施與生活機能／環境、綠地與地形／水系與洪水風險。每個圖層標示來源（官方WMS、OSM、附帶）、授權、說明與載入狀態。 |
+| **圖層** | 每市各七大主題、各40個圖層：行政區與統計單元／土地使用與都市計畫／住宅與開發／交通與運具／公共設施與生活機能／環境、綠地與地形／水系與洪水風險。每個圖層標示來源（官方WMS、官方圖磚、OSM、附帶）、授權、說明與載入狀態。 |
+| **比較** | 雙城同尺度輪廓、基本數字與14項OSM可比指標，可切換正規化方式並匯出CSV。 |
 | **概況** | 市域關鍵數字（面積、人口、行政分區、海拔、FNP生效日等）與六個「規劃情境」一鍵套用圖層組合：市域概況、法定計畫與開發壓力、生活機能（15分鐘城市）、運具供給、綠地與環境、洪水與地形風險。 |
-| **統計** | 點任一Stadtteil顯示面積、所屬Stadtbezirk／Ortschaft與各設施數（含每km²密度）；表格可依Stadtteil或彙整為Stadtbezirk排序。 |
+| **統計** | 點任一分區顯示面積與各設施數（含每km²密度）。德勒斯登可再彙整為Stadtbezirk／Ortschaft；臺北為12行政區。 |
 | **註記** | 在2D或3D地圖上落Pin、畫路線、畫範圍，填寫標題、類別（觀察／問題點／機會點／提案／待查證…）、顏色與說明；自動計算長度、面積與所在Stadtteil。註記保存在瀏覽器localStorage，可匯出／匯入GeoJSON、匯出Markdown摘要。 |
-| **資料** | 貼上或上傳CSV（如opendata.dresden.de的「Einwohner ab Stadtteil」）以代碼或名稱對應Stadtteil，產生五分位choropleth；以NodeId加入任何官方WMS資料集；加入GeoJSON（URL或檔案）。 |
+| **資料** | 貼上或上傳CSV（德勒斯登：opendata.dresden.de的「Einwohner ab Stadtteil」；臺北：data.taipei的「各區土地人口按月別」）以代碼或名稱對應分區，產生五分位choropleth；加入官方WMS（德勒斯登可用NodeId）；加入GeoJSON（URL或檔案）。 |
 
 其他：搜尋（Stadtteil本地比對＋Nominatim地址）、點擊地圖查詢官方WMS屬性（GetFeatureInfo）、WMS圖例、OSM圖層匯出GeoJSON、URL hash保存檢視（可分享）、列印。
 
@@ -31,7 +51,10 @@
 | Landeshauptstadt Dresden開放資料（kommisdd.dresden.de OGC服務） | 瀏覽器即時載入WMS，以 `NodeId` 對應 [opendata.dresden.de](https://opendata.dresden.de)資料集 | [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0)，需標示「Landeshauptstadt Dresden」 |
 | OpenStreetMap | 瀏覽器透過Overpass API即時查詢 | [ODbL](https://www.openstreetmap.org/copyright) |
 | Stadtteile界線（`data/stadtteile.geojson`） | 取自 [offenesdresden/GeoData](https://github.com/offenesdresden/GeoData)（OSM轉繪，來源標示Kommunale Statistikstelle Dresden） | ODbL |
-| 底圖 | CARTO Positron／Dark、OpenStreetMap、OpenTopoMap | 各自條款 |
+| 內政部國土測繪中心（wmts.nlsc.gov.tw） | 瀏覽器載入WMTS圖磚：通用版電子地圖（EMAP）、正射影像（PHOTO2）、地籍段籍圖（LANDSECT）、國土利用現況調查（LUIMAP） | 國土測繪圖資服務雲使用規範 |
+| 臺北市行政區界線（`data/taipei_districts.geojson`） | 取自 [g0v/twgeojson](https://github.com/g0v/twgeojson)（OSM轉繪）；面積欄位改用臺北市政府民政局公告值 | ODbL |
+| 臺北市里界（`data/taipei_villages.geojson`） | 同上，共449里 | ODbL |
+| 底圖 | CARTO Positron／Dark、OpenStreetMap、OpenTopoMap、NLSC通用版電子地圖與正射影像 | 各自條款 |
 
 ### 官方WMS圖層與NodeId
 
@@ -52,9 +75,24 @@
 
 Flächennutzungsplan（FNP 2020）、Lärmkartierung、Klimafunktionskarte、Kulturdenkmale、Sanierungsgebiete等資料集的NodeId請在opendata.dresden.de的資料集頁面複製WMS連結，於「資料」頁籤加入；目錄可在 `js/catalog.js` 直接擴充。
 
+### 臺北市官方圖磚（NLSC WMTS）
+
+| 圖層 | 代碼 | 用途 |
+|---|---|---|
+| 通用版電子地圖 | EMAP | 底圖（臺北預設） |
+| 正射影像 | PHOTO2 | 底圖 |
+| 地籍段籍圖 | LANDSECT | 疊圖，z15以上才有內容 |
+| 國土利用現況調查 | LUIMAP | 疊圖，可與都市計畫分區對照 |
+
+圖磚網址格式：`https://wmts.nlsc.gov.tw/wmts/{代碼}/default/GoogleMapsCompatible/{z}/{y}/{x}`。
+
 ## 已知限制
 
 - 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken三個Ortschaft；面積為近似值。
+- 臺北里界為OSM轉繪的1982年版編組，共449里，與現行編組（含2018年調整）有出入，僅供概覽；行政區界線亦為OSM轉繪，但面積欄位採民政局公告值（全市271.7997 km²）。
+- 臺北市的土地使用分區、都市更新地區等法定計畫目前沒有穩定的公開OGC服務，目錄中以連結導向都發局查詢系統；NLSC圖磚的圖層代碼若日後調整，需更新 `js/catalog-taipei.js`。
+- 雙城比較的分母：德勒斯登為主要居所登記人口（2025年12月31日，571,510人），臺北市為戶籍人口（2026年7月，約242萬人），統計基準不同；臺北日間活動人口另含大量新北通勤者，「每10萬人」會低估實際使用強度。
+- 公園綠地面積指標只計OSM的way物件，以relation（multipolygon）繪製的公園未納入；自行車道長度以整條way計入其中心點所在城市。
 - 官方WMS圖層名稱會嘗試以GetCapabilities自動偵測；若服務不允許跨域讀取，則以NodeId作為圖層名稱，並在WMS 1.3.0失敗時自動退回1.1.1。無法顯示時，請在「資料」頁籤手動填入 `LAYERS`。
 - GetFeatureInfo若受跨域限制，會提供「在新分頁開啟查詢結果」連結。
 - 設施數以OSM物件中心點落入分區計算，屬概覽性質；正式統計請以Kommunale Statistikstelle的Stadtteilkatalog為準。
@@ -78,21 +116,27 @@ python3 -m http.server 8000
 ## 專案結構
 
 ```
-index.html               版面與四個頁籤
-css/app.css              樣式（含列印與行動版）
-js/catalog.js            圖層目錄、規劃情境、市域概況（要新增圖層改這裡）
-js/app.js                地圖、圖層載入（WMS／Overpass／GeoJSON）、統計、CSV、搜尋、hash狀態
-js/annotate.js           註記工具（Pin／線／範圍、編輯、localStorage、匯入匯出）
-js/buildings3d.js        3D建築量體（MapLibre GL、GeoSN LoD1）
-js/geo.js                point-in-polygon、面積、分位數等幾何工具
-data/stadtteile.js       Stadtteile界線（含code、bezirk、area_km2）
-data/stadtteile.geojson  同上，GeoJSON版
-vendor/leaflet/          Leaflet 1.9.4（BSD-2-Clause）
+index.html                    版面與七個頁籤
+css/app.css                   樣式（含列印與行動版）
+js/cities.js                  城市設定：中心、bbox、統計單元、底圖、市域數字、3D模式、比較指標
+js/catalog.js                 德勒斯登圖層目錄、規劃情境、市域概況
+js/catalog-taipei.js          臺北市圖層目錄、規劃情境、市域概況
+js/app.js                     地圖、圖層載入（WMS／WMTS／Overpass／GeoJSON）、統計、CSV、搜尋、城市切換、hash狀態
+js/compare.js                 城市切換視窗與雙城比較（同尺度輪廓、基本數字、OSM指標）
+js/annotate.js                註記工具（Pin／線／範圍、編輯、localStorage、匯入匯出）
+js/buildings3d.js             3D建築量體（MapLibre GL；GeoSN LoD1 或 OSM即時查詢）
+js/geo.js                     point-in-polygon、面積、分位數等幾何工具
+data/stadtteile.geojson       Dresden Stadtteile界線（.js為同內容的全域變數版）
+data/taipei_districts.geojson 臺北市12行政區（.js為同內容的全域變數版）
+data/taipei_villages.geojson  臺北市449里（開啟圖層時才抓取）
+vendor/leaflet/               Leaflet 1.9.4（BSD-2-Clause）
 ```
+
+要新增城市，在 `js/cities.js` 加一組設定並提供對應的目錄檔即可；比較指標定義也在同一個檔案。
 
 ### 新增圖層
 
-在 `js/catalog.js` 的 `layers` 陣列加入一筆：
+在 `js/catalog.js`（德勒斯登）或 `js/catalog-taipei.js`（臺北）的 `layers` 陣列加入一筆：
 
 ```js
 // 官方WMS

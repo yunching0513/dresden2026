@@ -7,6 +7,17 @@
 - **Landeshauptstadt Dresden open data** is loaded at runtime from kommisdd.dresden.de under
   Datenlizenz Deutschland – Namensnennung – Version 2.0 (dl-de/by-2-0). Attribution: "Landeshauptstadt Dresden, opendata.dresden.de".
 - **OpenStreetMap data** loaded at runtime via Overpass API: © OpenStreetMap contributors, ODbL 1.0.
+- **Taipei district boundaries** (`data/taipei_districts.geojson`, `data/taipei_districts.js`) and
+  **Taipei village boundaries** (`data/taipei_villages.geojson`): derived from OpenStreetMap via
+  https://github.com/g0v/twgeojson (`twTown1982`, `twVillage1982`). © OpenStreetMap contributors, ODbL 1.0.
+  Modified by this project: filtered to Taipei City; geometry simplified (Douglas-Peucker, ~3 m / ~4 m);
+  coordinates rounded to 6 decimals; properties `code`, `official_name`, `en`, `area_geom_km2` added.
+  The `area_km2` property is NOT derived from the geometry: it is the official figure published by the
+  Taipei City Department of Civil Affairs (city total 271.7997 km²), because the OSM-derived outlines
+  differ from the gazetted boundaries along the rivers.
+- **National Land Surveying and Mapping Center (NLSC) WMTS tiles** are loaded at runtime from
+  wmts.nlsc.gov.tw (layers EMAP, PHOTO2, LANDSECT, LUIMAP) under the terms of the
+  國土測繪圖資服務雲 (https://maps.nlsc.gov.tw). Attribution: "內政部國土測繪中心".
 - **MapLibre GL JS 5.6.1** (`vendor/maplibre/`): BSD-3-Clause. See `vendor/maplibre/LICENSE.txt`.
 - **Dresden LoD1 building geometry** (`data/buildings/`): Quelle: GeoSN, dl-de/by-2-0.
   Source: https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html

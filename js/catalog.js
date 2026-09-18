@@ -304,8 +304,9 @@
 
   // 市域概況（參考值，請以Kommunale Statistikstelle最新出版品為準）
   const facts = [
-    { k: '市域面積', v: '328.8 km²', note: '約1/4為森林（Dresdner Heide等），為德國最綠的大城之一。' },
-    { k: '人口', v: '約56萬', note: '主要居所人口，2023年底；2000年代起持續成長，出生率居德國大城前段。' },
+    { k: '市域面積', v: '328.8 km²', note: '約1/4為森林（Dresdner Heide等），為德國最綠的大城之一；面積與臺北市（271.8 km²）同級。' },
+    { k: '人口密度', v: '約1,740人/km²', note: '約為臺北市（約8,900人/km²）的五分之一：兩市面積相近，但人口規模與密度差距懸殊。' },
+    { k: '人口', v: '571,510人', note: '主要居所人口，2025年12月31日戶籍登記；2010年代持續成長後近年微幅下降。' },
     { k: '行政分區', v: '10 Stadtbezirke＋9 Ortschaften', note: '1990年代併入的周邊鄉鎮保留Ortschaft地位與地方議會。' },
     { k: '統計分區', v: '64 Stadtteile', note: '本圖層附帶其中61區（OSM轉繪），再細分為Statistische Bezirke。' },
     { k: '海拔', v: '101–383 m', note: '易北河谷地約110 m，兩側為Elbhänge坡地與Dresdner Heide台地。' },
@@ -316,5 +317,7 @@
     { k: 'Ortschaften界線缺漏', v: '3區未含', note: 'Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken需自官方WFS補齊。' },
   ];
 
-  window.DD_CATALOG = { WMS_BASE, WFS_BASE, BBOX, groups, layers, presets, facts };
+  window.DD_CATALOGS = window.DD_CATALOGS || {};
+  window.DD_CATALOGS.dresden = { WMS_BASE, WFS_BASE, BBOX, groups, layers, presets, facts };
+  window.DD_CATALOG = window.DD_CATALOGS.dresden; // 舊名保留
 })();

@@ -141,9 +141,12 @@
     return i;
   };
 
+  // 數字格式跟著目前城市的語系：德勒斯登用德式（1.234,5），臺北用台灣慣例（1,234.5）
+  let locale = 'de-DE';
+  DDGeo.setLocale = function (tag) { locale = tag === 'zh-TW' ? 'zh-TW' : 'de-DE'; };
   DDGeo.fmt = function (n, digits) {
     if (n === null || n === undefined || !Number.isFinite(n)) return '–';
-    return n.toLocaleString('de-DE', { maximumFractionDigits: digits === undefined ? 1 : digits });
+    return n.toLocaleString(locale, { maximumFractionDigits: digits === undefined ? 1 : digits });
   };
 
   window.DDGeo = DDGeo;

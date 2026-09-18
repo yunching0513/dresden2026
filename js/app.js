@@ -2,8 +2,9 @@
 (function () {
   'use strict';
 
-  const C = window.DD_CATALOG;
+  const CITIES = window.DD_CITIES;
   const G = window.DDGeo;
+  let C = null; // 目前城市的圖層目錄；切換城市時改指 CITIES[id].catalog
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
   const el = (tag, attrs, children) => {
@@ -21,56 +22,73 @@
 
   const state = {
     map: null,
+    city: null,        // 目前城市設定（js/cities.js）
+    cityId: null,
     layers: {},        // id -> { def, leaflet, status, features, counts }
-    stFC: null,        // Stadtteile FeatureCollection
+    stFC: null,        // 統計單元（Stadtteile／行政區）FeatureCollection
     stIndex: null,
     stLayer: null,
     stLabels: null,
+    unitId: null,      // 該市統計單元圖層的id
+    unitColors: {},
     selectedCode: null,
     choropleth: null,  // { field, label, values: {code: number}, breaks, perKm2 }
     customCount: 0,
     baseLayers: {},
+    baseControl: null,
+    attribution: null,
   };
 
   /* ------------------------------------------------------------------ */
   /* 地圖初始化                                                           */
   /* ------------------------------------------------------------------ */
   function initMap() {
-    const map = L.map('map', { zoomControl: false, preferCanvas: true, zoomSnap: 0, minZoom: 9, maxZoom: 19 })
-      .setView([51.05, 13.74], 12);
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, zoomSnap: 0, minZoom: 8, maxZoom: 19 })
+      .setView(state.city.center, state.city.zoom);
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
-
-    const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    });
-    const positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/">CARTO</a>',
-    });
-    const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    });
-    const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
-    });
-    state.baseLayers = { 'Positron（淺色）': positron, 'OpenStreetMap': osm, 'Dark': dark, 'OpenTopoMap': topo };
-    osm.addTo(map);
-    L.control.layers(state.baseLayers, null, { position: 'topright', collapsed: true }).addTo(map);
-
-    map.attributionControl.addAttribution('Datenquelle: <a href="https://opendata.dresden.de">Landeshauptstadt Dresden</a> (dl-de/by-2-0)');
     map.on('click', onMapClick);
     map.on('moveend', writeHash);
     map.on('zoomend', updateLabelVisibility);
     state.map = map;
+    setBaseLayers();
+  }
+
+  /* 底圖隨城市而異：臺北預設用國土測繪中心的通用版電子地圖。 */
+  function setBaseLayers() {
+    const map = state.map;
+    Object.values(state.baseLayers).forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
+    if (state.baseControl) { map.removeControl(state.baseControl); state.baseControl = null; }
+    if (state.attribution) map.attributionControl.removeAttribution(state.attribution);
+    const entries = {};
+    state.city.baseLayers.forEach((b, i) => {
+      const layer = L.tileLayer(b.url, b.opts);
+      entries[b.name] = layer;
+      if (i === 0) layer.addTo(map);
+    });
+    state.baseLayers = entries;
+    state.baseControl = L.control.layers(entries, null, { position: 'topright', collapsed: true }).addTo(map);
+    state.attribution = state.city.attribution;
+    map.attributionControl.addAttribution(state.attribution);
   }
 
   /* ------------------------------------------------------------------ */
   /* Stadtteile（附帶資料）                                                */
   /* ------------------------------------------------------------------ */
-  function initStadtteile() {
-    const fc = window.DD_STADTTEILE;
+  function initUnits() {
+    if (state.stLayer && state.map.hasLayer(state.stLayer)) state.map.removeLayer(state.stLayer);
+    if (state.stLabels && state.map.hasLayer(state.stLabels)) state.map.removeLayer(state.stLabels);
+    const fc = state.city.boundaries();
     state.stFC = fc;
     state.stIndex = G.buildIndex(fc);
+    state.unitId = (C.layers.find((l) => l.type === 'bundled') || {}).id;
+    state.unitColors = {};
+    fc.features.forEach((f, i) => {
+      const p = f.properties;
+      state.unitColors[p.code] = state.city.unit.hasParent
+        ? (BEZIRK_COLORS[p.bezirk_code] || '#999')
+        : UNIT_PALETTE[i % UNIT_PALETTE.length];
+    });
     state.stLayer = L.geoJSON(fc, {
       style: styleStadtteil,
       onEachFeature(feature, layer) {
@@ -93,6 +111,8 @@
   }
 
   const BEZIRK_COLORS = { 0: '#e6194b', 1: '#3cb44b', 2: '#4363d8', 3: '#f58231', 4: '#911eb4', 5: '#42d4f4', 6: '#f032e6', 7: '#bfef45', 8: '#fabed4', 9: '#469990' };
+  // 無上層分區的城市（如臺北12行政區）：直接給每個單元一個可辨識的顏色
+  const UNIT_PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#469990', '#9a6324', '#800000', '#808000', '#000075'];
 
   function styleStadtteil(feature) {
     const p = feature.properties;
@@ -107,9 +127,9 @@
     }
     return {
       color: selected ? '#000' : (p.ortschaft ? '#7b5e3b' : '#1f4e79'),
-      weight: selected ? 3 : (p.ortschaft ? 1.2 : 1.2),
+      weight: selected ? 3 : 1.2,
       dashArray: p.ortschaft ? '4 3' : null,
-      fillColor: BEZIRK_COLORS[p.bezirk_code] || '#999',
+      fillColor: state.unitColors[p.code] || '#999',
       fillOpacity: selected ? 0.2 : 0.06,
     };
   }
@@ -151,9 +171,9 @@
     const p = f.properties;
     const card = $('#district-card');
     const rows = [];
-    rows.push(`<tr><th>Stadtbezirk / Ortschaft</th><td>${p.bezirk}</td></tr>`);
+    if (state.city.unit.hasParent) rows.push(`<tr><th>${state.city.unit.parent}</th><td>${p.bezirk}</td></tr>`);
     rows.push(`<tr><th>面積</th><td>${G.fmt(p.area_km2, 2)} km²</td></tr>`);
-    if (p.official_name !== p.name) rows.push(`<tr><th>正式名稱</th><td>${p.official_name}</td></tr>`);
+    if (p.official_name && p.official_name !== p.name) rows.push(`<tr><th>正式名稱</th><td>${p.official_name}</td></tr>`);
     if (state.choropleth) {
       const v = state.choropleth.values[p.code];
       rows.push(`<tr><th>${state.choropleth.label}</th><td>${G.fmt(v, 2)}</td></tr>`);
@@ -164,7 +184,7 @@
       rows.push(`<tr><th>${l.def.name}</th><td>${n} <span class="muted">（${G.fmt(n / p.area_km2, 1)}/km²）</span></td></tr>`);
     }
     card.innerHTML = `<h3>${p.code} ${p.name}</h3><table class="kv">${rows.join('')}</table>
-      <p class="muted small">設施數以OSM物件中心點落入本區計算，僅供概覽；官方統計請參考Stadtteilkatalog。</p>`;
+      <p class="muted small">設施數以OSM物件中心點落入本區計算，僅供概覽；官方統計請以${state.city.id === 'taipei' ? '臺北市主計處與民政局' : 'Stadtteilkatalog'}為準。</p>`;
     card.hidden = false;
   }
 
@@ -200,7 +220,7 @@
     const body = el('div', { class: 'layer-body', hidden: '' });
     body.appendChild(el('p', { class: 'desc', text: def.desc || '' }));
     body.appendChild(el('p', { class: 'meta', html: `<b>${def.de || ''}</b><br>來源：${def.source}（${def.license}）` }));
-    if (def.type === 'wms') {
+    if (def.type === 'wms' && C.WMS_BASE) {
       const capUrl = `${C.WMS_BASE}?NodeId=${def.nodeId}&Service=WMS&Request=GetCapabilities`;
       body.appendChild(el('p', { class: 'meta', html: `NodeId ${def.nodeId} · <a href="${capUrl}" target="_blank" rel="noopener">GetCapabilities</a> · <a href="${C.WFS_BASE}?NodeId=${def.nodeId}&Service=WFS&Request=GetCapabilities" target="_blank" rel="noopener">WFS</a>` }));
       const opacity = el('input', { type: 'range', min: 0, max: 100, value: Math.round((def.opacity || 0.8) * 100) });
@@ -208,9 +228,19 @@
       body.appendChild(el('div', { class: 'row' }, [el('span', { class: 'small', text: '透明度' }), opacity]));
       body.appendChild(el('div', { class: 'legend-box', id: `lg-${id}` }));
     }
+    if (def.type === 'xyz') {
+      const opacity = el('input', { type: 'range', min: 0, max: 100, value: Math.round((def.opacity || 0.8) * 100) });
+      opacity.addEventListener('input', () => { const l = state.layers[id]; if (l && l.leaflet) l.leaflet.setOpacity(opacity.value / 100); });
+      body.appendChild(el('div', { class: 'row' }, [el('span', { class: 'small', text: '透明度' }), opacity]));
+      body.appendChild(el('p', { class: 'meta mono', text: def.url }));
+      if (def.minZoom) body.appendChild(el('p', { class: 'meta', text: `放大至 z${def.minZoom} 以上才會顯示內容。` }));
+    }
     if (def.type === 'portal') {
-      body.appendChild(el('p', { class: 'meta', html: `<a href="https://opendata.dresden.de/?q=${encodeURIComponent(def.portalQuery)}" target="_blank" rel="noopener">在opendata.dresden.de搜尋「${def.portalQuery}」</a>` }));
+      const href = def.portalUrl || `https://opendata.dresden.de/?q=${encodeURIComponent(def.portalQuery || '')}`;
+      const label = def.portalUrl ? '前往官方查詢系統 ↗' : `在opendata.dresden.de搜尋「${def.portalQuery}」`;
+      body.appendChild(el('p', { class: 'meta', html: `<a href="${href}" target="_blank" rel="noopener">${label}</a>` }));
       cb.disabled = true;
+      body.hidden = false;
     }
     if (def.type === 'overpass') {
       const q = def.rawQuery || (def.query + (def.relQuery || ''));
@@ -229,8 +259,9 @@
 
   function sourceLabel(def) {
     if (def.type === 'wms') return def.verified ? '官方WMS' : '官方WMS?';
+    if (def.type === 'xyz') return '官方圖磚';
     if (def.type === 'overpass') return 'OSM';
-    if (def.type === 'bundled') return '附帶';
+    if (def.type === 'bundled' || def.type === 'geojson') return '附帶';
     if (def.type === 'portal') return '待補NodeId';
     if (def.type === 'custom') return '自訂';
     return def.type;
@@ -254,6 +285,8 @@
     if (on) {
       if (def.type === 'bundled') { state.stLayer.addTo(state.map); updateLabelVisibility(); state.layers[id] = { def, leaflet: state.stLayer }; }
       else if (def.type === 'wms') addWms(def);
+      else if (def.type === 'xyz') addXyz(def);
+      else if (def.type === 'geojson') addLocalGeoJSON(def);
       else if (def.type === 'overpass') addOverpass(def);
       else if (def.type === 'custom' || def.type === 'annotation') { state.layers[id].leaflet.addTo(state.map); }
     } else {
@@ -270,6 +303,48 @@
   /* ------------------------------------------------------------------ */
   /* 官方WMS                                                             */
   /* ------------------------------------------------------------------ */
+  /* 官方WMTS／XYZ圖磚（如國土測繪中心） */
+  function addXyz(def) {
+    const entry = { def, leaflet: null, status: 'loading', errors: 0 };
+    state.layers[def.id] = entry;
+    setStatus(def.id, '載入中…', 'loading');
+    const layer = L.tileLayer(def.url, {
+      opacity: def.opacity === undefined ? 0.8 : def.opacity,
+      maxZoom: 19, minZoom: def.minZoom || 0, attribution: def.source,
+    });
+    layer.on('load', () => { if (entry.status !== 'error') { entry.status = 'ok'; setStatus(def.id, '✓', 'ok'); } });
+    layer.on('tileerror', () => { entry.errors++; if (entry.errors > 8) { entry.status = 'error'; setStatus(def.id, '⚠ 無法載入', 'error'); } });
+    entry.leaflet = layer;
+    layer.addTo(state.map);
+  }
+
+  /* 隨站附帶、開啟時才抓取的GeoJSON（如臺北里界） */
+  const localCache = {};
+  async function addLocalGeoJSON(def) {
+    const id = def.id;
+    const entry = { def, leaflet: null, status: 'loading' };
+    state.layers[id] = entry;
+    setStatus(id, '載入中…', 'loading');
+    try {
+      let fc = localCache[def.url];
+      if (!fc) { const res = await fetch(def.url); if (!res.ok) throw new Error('HTTP ' + res.status); fc = await res.json(); localCache[def.url] = fc; }
+      if (!state.layers[id]) return;
+      entry.features = fc;
+      const layer = L.geoJSON(fc, {
+        renderer: L.canvas({ padding: 0.5 }),
+        style: () => ({ color: def.color, weight: def.weight || 1, fillColor: def.color, fillOpacity: def.fill === undefined ? 0.05 : def.fill }),
+        onEachFeature: (f, l) => l.bindPopup(() => popupHtml(f.properties || {}), { maxWidth: 320 }),
+      });
+      entry.leaflet = layer;
+      layer.addTo(state.map);
+      entry.status = 'ok';
+      setStatus(id, `${fc.features.length} 筆`, 'ok');
+    } catch (err) {
+      entry.status = 'error';
+      setStatus(id, '⚠ ' + (err.message || '失敗'), 'error');
+    }
+  }
+
   function addWms(def) {
     const id = def.id;
     const url = def.url || `${C.WMS_BASE}?NodeId=${def.nodeId}&Service=WMS&`;
@@ -379,7 +454,7 @@
   const overpassCache = {};
 
   function buildQuery(def) {
-    const bbox = C.BBOX.join(',');
+    const bbox = state.city.bbox.join(',');
     if (def.rawQuery) return `[out:json][timeout:120];${def.rawQuery.replace(/\{\{bbox\}\}/g, bbox)}`;
     const q = def.query.replace(/\{\{bbox\}\}/g, bbox);
     if (def.geom === 'point') return `[out:json][timeout:120];(${q});out center tags;`;
@@ -452,11 +527,12 @@
     state.layers[id] = entry;
     setStatus(id, '查詢OSM…', 'loading');
     try {
-      let fc = overpassCache[id];
+      const cacheKey = `${state.cityId}:${id}`;
+      let fc = overpassCache[cacheKey];
       if (!fc) {
         const json = await runOverpass(buildQuery(def));
         fc = osmToFeatures(json, def);
-        overpassCache[id] = fc;
+        overpassCache[cacheKey] = fc;
       }
       if (!state.layers[id]) return; // 使用者已取消
       entry.features = fc;
@@ -488,7 +564,7 @@
 
   function exportLayer(id) {
     const l = state.layers[id];
-    const fc = (l && l.features) || overpassCache[id];
+    const fc = (l && l.features) || overpassCache[`${state.cityId}:${id}`];
     if (!fc) { alert('請先開啟圖層並完成載入。'); return; }
     downloadText(`${id}.geojson`, JSON.stringify(fc));
   }
@@ -543,13 +619,13 @@
     rows.sort((a, b) => {
       const av = sortKey === 'name' ? a.name : sortKey === 'area' ? a.area : sortKey === 'dens' ? a.val / a.area : a.val;
       const bv = sortKey === 'name' ? b.name : sortKey === 'area' ? b.area : sortKey === 'dens' ? b.val / b.area : b.val;
-      if (typeof av === 'string') return av.localeCompare(bv, 'de') * dir;
+      if (typeof av === 'string') return av.localeCompare(bv, state.city.locale) * dir;
       return ((Number.isFinite(av) ? av : -Infinity) - (Number.isFinite(bv) ? bv : -Infinity)) * dir;
     });
     const total = rows.reduce((s, r) => s + (Number.isFinite(r.val) ? r.val : 0), 0);
     const th = (k, t) => `<th data-key="${k}" class="sortable ${sortKey === k ? 'active' : ''}">${t}</th>`;
     const showDens = id !== '__choro' || state.choropleth.additive;
-    wrap.innerHTML = `<table class="stats"><thead><tr>${th('name', byBezirk ? 'Stadtbezirk' : 'Stadtteil')}${th('area', 'km²')}${th('val', label)}${showDens ? th('dens', '/km²') : ''}</tr></thead>
+    wrap.innerHTML = `<table class="stats"><thead><tr>${th('name', byBezirk ? state.city.unit.parent : state.city.unit.one)}${th('area', 'km²')}${th('val', label)}${showDens ? th('dens', '/km²') : ''}</tr></thead>
       <tbody>${rows.map((r) => `<tr data-code="${r.code}"><td>${r.code ? r.code + ' ' : ''}${r.name}</td><td class="num">${G.fmt(r.area, 1)}</td><td class="num">${G.fmt(r.val, 2)}</td>${showDens ? `<td class="num">${G.fmt(r.val / r.area, 1)}</td>` : ''}</tr>`).join('')}</tbody>
       ${showDens ? `<tfoot><tr><td>合計</td><td class="num">${G.fmt(rows.reduce((s, r) => s + r.area, 0), 1)}</td><td class="num">${G.fmt(total, 0)}</td><td></td></tr></tfoot>` : ''}</table>`;
     $$('th.sortable', wrap).forEach((h) => h.addEventListener('click', () => {
@@ -651,13 +727,13 @@
         values[code] = $('#csv-perkm2').checked ? v / getFeatureByCode(code).properties.area_km2 : v;
         matched++;
       }
-      if (!matched) { $('#csv-info').textContent = '沒有任何列能對應到Stadtteil代碼或名稱，請確認鍵欄位。'; return; }
+      if (!matched) { $('#csv-info').textContent = `沒有任何列能對應到${state.city.unit.one}代碼或名稱，請確認鍵欄位。`; return; }
       const label = parsed.header[vi] + ($('#csv-perkm2').checked ? '（/km²）' : '');
       state.choropleth = { label, values, breaks: G.quantileBreaks(Object.values(values), 5), additive: !$('#csv-perkm2').checked && $('#csv-additive').checked };
       state.stLayer.setStyle(styleStadtteil);
-      if (!state.map.hasLayer(state.stLayer)) toggleLayer('stadtteile', true);
+      if (!state.map.hasLayer(state.stLayer)) toggleLayer(state.unitId, true);
       renderChoroLegend();
-      $('#csv-info').textContent = `已套用：${matched} 個Stadtteil對應成功。`;
+      $('#csv-info').textContent = `已套用：${matched} 個${state.city.unit.one}對應成功。`;
       refreshStatsSelect();
       $('#stats-layer').value = '__choro';
       renderStatsTable();
@@ -687,7 +763,8 @@
   /* ------------------------------------------------------------------ */
   function setupCustom() {
     $('#custom-wms-add').addEventListener('click', () => {
-      const nodeId = $('#custom-nodeid').value.trim();
+      const nodeIdInput = $('#custom-nodeid');
+      const nodeId = nodeIdInput ? nodeIdInput.value.trim() : '';
       const url = $('#custom-wms-url').value.trim();
       const layersParam = $('#custom-wms-layers').value.trim();
       const name = $('#custom-wms-name').value.trim() || (nodeId ? `NodeId ${nodeId}` : 'WMS圖層');
@@ -780,12 +857,13 @@
       clearTimeout(timer);
       const q = input.value.trim();
       if (q.length < 2) { list.hidden = true; return; }
-      const local = state.stFC.features.filter((f) => (f.properties.name + ' ' + f.properties.code + ' ' + f.properties.official_name).toLowerCase().includes(q.toLowerCase()))
+      const local = state.stFC.features.filter((f) => (f.properties.name + ' ' + f.properties.code + ' ' + (f.properties.official_name || '') + ' ' + (f.properties.en || '')).toLowerCase().includes(q.toLowerCase()))
         .slice(0, 6).map((f) => ({ title: `${f.properties.code} ${f.properties.name}`, sub: f.properties.bezirk, go: () => selectStadtteil(f.properties.code, true) }));
       render(local);
       timer = setTimeout(async () => {
         try {
-          const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&viewbox=13.57,51.18,13.97,50.97&bounded=1&q=${encodeURIComponent(q)}`;
+          const bb = state.city.bbox; // [s,w,n,e] → viewbox=w,n,e,s
+          const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&viewbox=${bb[1]},${bb[2]},${bb[3]},${bb[0]}&bounded=1&q=${encodeURIComponent(q)}`;
           const res = await fetch(url, { headers: { Accept: 'application/json' } });
           const js = await res.json();
           const remote = js.map((r) => ({ title: r.display_name.split(',').slice(0, 2).join(','), sub: r.type, go: () => state.map.setView([+r.lat, +r.lon], 16) }));
@@ -807,7 +885,7 @@
     const c = view ? view.center : state.map.getCenter();
     const zoom = view ? view.zoom : state.map.getZoom();
     const mode = view ? `&v=3d&p=${view.pitch.toFixed(1)}&b=${view.bearing.toFixed(1)}` : '&v=2d';
-    history.replaceState(null, '', `#l=${ids.join(',')}&c=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${zoom.toFixed(2)}${mode}`);
+    history.replaceState(null, '', `#city=${state.cityId}&l=${ids.join(',')}&c=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${zoom.toFixed(2)}${mode}`);
   }
   function readHash() {
     const h = location.hash.slice(1);
@@ -831,7 +909,7 @@
     $('#stats-layer').addEventListener('change', renderStatsTable);
     $('#stats-bezirk').addEventListener('change', renderStatsTable);
     $('#btn-print').addEventListener('click', () => { window.DD3D.close(); window.print(); });
-    $('#btn-reset').addEventListener('click', () => { state.map.setView([51.05, 13.74], 12); state.selectedCode = null; state.stLayer.setStyle(styleStadtteil); });
+    $('#btn-reset').addEventListener('click', () => { state.map.setView(state.city.center, state.city.zoom); state.selectedCode = null; state.stLayer.setStyle(styleStadtteil); });
     $('#btn-clear').addEventListener('click', () => { Object.keys(state.layers).forEach((id) => { if (state.layers[id].def.type !== 'annotation') toggleLayer(id, false); }); });
     $('#btn-share').addEventListener('click', async () => {
       writeHash();
@@ -840,33 +918,121 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* 城市切換                                                             */
+  /* ------------------------------------------------------------------ */
+  function applyCity(id) {
+    state.city = CITIES[id];
+    state.cityId = id;
+    C = state.city.catalog;
+    G.setLocale(state.city.locale === 'zh-TW' ? 'zh-TW' : 'de-DE');
+    document.body.dataset.city = id;
+  }
+
+  /* 切換前清掉上一個城市的圖層、選取與分級設色；註記刻意保留（跨城市田野筆記）。 */
+  function teardownCity() {
+    Object.keys(state.layers).forEach((id) => {
+      const entry = state.layers[id];
+      if (entry.def.type === 'annotation') return;
+      if (entry.leaflet && state.map.hasLayer(entry.leaflet)) state.map.removeLayer(entry.leaflet);
+      delete state.layers[id];
+    });
+    if (state.stLabels && state.map.hasLayer(state.stLabels)) state.map.removeLayer(state.stLabels);
+    if (state.stLayer && state.map.hasLayer(state.stLayer)) state.map.removeLayer(state.stLayer);
+    state.choropleth = null;
+    state.selectedCode = null;
+    state.customCount = 0;
+    $('#district-card').hidden = true;
+    $('#choro-legend').hidden = true;
+    const cg = $('#custom-group');
+    if (cg) cg.remove();
+  }
+
+  function switchCity(id, opts) {
+    if (!CITIES[id] || id === state.cityId) return;
+    const o = opts || {};
+    teardownCity();
+    applyCity(id);
+    initUnits();
+    setBaseLayers();
+    renderLayerPanel();
+    renderOverview();
+    applyCityChrome();
+    hashLock = true;
+    state.map.setView(o.center || state.city.center, o.zoom || state.city.zoom);
+    const ids = o.layers || C.layers.filter((l) => l.default).map((l) => l.id);
+    ids.forEach((lid) => toggleLayer(lid, true));
+    hashLock = false;
+    writeHash();
+    refreshStatsSelect();
+    try { localStorage.setItem('dd_city', id); } catch (e) { /* 隱私模式 */ }
+    if (window.DD3D && window.DD3D.setCity) window.DD3D.setCity();
+    if (window.DDCompare && window.DDCompare.cityChanged) window.DDCompare.cityChanged();
+  }
+
+  /* 側欄與標題列中隨城市而異的文字 */
+  function applyCityChrome() {
+    const city = state.city;
+    $('#city-btn-flag').textContent = city.flag;
+    $('#city-btn-name').textContent = city.name;
+    $('#model-eyebrow').textContent = `${city.en.toUpperCase()} / CITY MODEL`;
+    $('#model-title').textContent = city.model3d.title;
+    $('#model-sub').textContent = city.model3d.sub;
+    $('#overview-title').textContent = `${city.name}概況`;
+    $('#overview-note').textContent = city.id === 'taipei'
+      ? '參考值，請以臺北市政府主計處與民政局最新統計為準。'
+      : '參考值，請以Kommunale Statistikstelle Dresden最新出版品（Stadtteilkatalog、Statistisches Jahrbuch）為準。';
+    $('#layers-footnote').innerHTML = city.id === 'taipei'
+      ? '「官方圖磚」由內政部國土測繪中心WMTS提供；「OSM」由Overpass API即時查詢OpenStreetMap；土地使用分區等需至都發局查詢系統逐筆查閱。'
+      : '「官方WMS」由Landeshauptstadt Dresden（kommisdd.dresden.de）即時提供，依NodeId對應opendata.dresden.de的資料集；「OSM」由Overpass API即時查詢OpenStreetMap。點擊地圖可查詢已開啟官方圖層的屬性。';
+    $('#search').placeholder = city.id === 'taipei' ? '搜尋行政區、地址或地點' : '搜尋Stadtteil、地址或地點（Nominatim）';
+    $('#stats-bezirk-row').hidden = !city.unit.hasParent;
+    if (!city.unit.hasParent) $('#stats-bezirk').checked = false;
+    const places = $('#model-places');
+    places.innerHTML = '';
+    city.model3d.places.forEach((pl) => {
+      places.appendChild(el('button', { 'data-place': pl.c, html: `${pl.title}<br><small>${pl.sub}</small>` }));
+    });
+    if (city.model3d.mode === 'tiles') {
+      places.appendChild(el('button', { id: 'model-coverage', html: '資料範圍<br><small>查看已收錄區塊</small>' }));
+    }
+    document.title = `${city.name}開放資料圖層｜Dresden × Taipei`;
+  }
+
+  /* ------------------------------------------------------------------ */
   /* 啟動                                                                 */
   /* ------------------------------------------------------------------ */
   function boot() {
+    const h = readHash();
+    let startCity = 'dresden';
+    try { const saved = localStorage.getItem('dd_city'); if (saved && CITIES[saved]) startCity = saved; } catch (e) { /* 隱私模式 */ }
+    if (h && h.city && CITIES[h.city]) startCity = h.city;
+    applyCity(startCity);
+
     initMap();
-    initStadtteile();
+    initUnits();
     renderLayerPanel();
     renderOverview();
+    applyCityChrome();
     setupCsv();
     setupCustom();
     setupSearch();
     setupUi();
 
-    const h = readHash();
     hashLock = true;
     if (h && h.c) {
       const [lat, lng, z] = h.c.split(',').map(Number);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) state.map.setView([lat, lng], z || 12);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) state.map.setView([lat, lng], z || state.city.zoom);
     }
     const ids = h && h.l !== undefined ? h.l.split(',').filter(Boolean) : C.layers.filter((l) => l.default).map((l) => l.id);
     ids.forEach((id) => toggleLayer(id, true));
     hashLock = false;
     window.DDAnnotate.init({ state, switchTab });
+    window.DDCompare.init({ state, switchTab, switchCity, runOverpass, osmToFeatures, el, downloadText });
     window.DD3D.init({ state, writeHash, switchTab }, h);
     writeHash();
     refreshStatsSelect();
   }
 
   document.addEventListener('DOMContentLoaded', boot);
-  window.DDApp = { state, toggleLayer, selectStadtteil, applyPreset };
+  window.DDApp = { state, toggleLayer, selectStadtteil, applyPreset, switchCity };
 })();

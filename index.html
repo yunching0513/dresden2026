@@ -3,21 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dresden Open Data Layers｜德勒斯登開放資料圖層</title>
-  <meta name="description" content="給都市規劃師的德勒斯登（Dresden）開放資料圖層檢視器：行政區、法定計畫、交通、公共設施、綠地與洪水風險。">
+  <title>雙城開放資料圖層｜德勒斯登 × 臺北</title>
+  <meta name="description" content="給都市規劃師的德勒斯登（Dresden）與臺北市開放資料圖層檢視器：可切換兩座城市，並以相同的OSM查詢做跨城市指標比較。">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
-<body>
+<body data-city="dresden">
   <header class="topbar">
     <button id="sidebar-toggle" class="icon-btn" title="收合側欄" aria-label="收合側欄">☰</button>
     <div class="brand">
-      <span class="brand-title">Dresden Open Data Layers</span>
-      <span class="brand-sub">德勒斯登 · 都市規劃概覽</span>
+      <span class="brand-title">Dresden × Taipei</span>
+      <span class="brand-sub">雙城開放資料圖層 · 都市規劃概覽</span>
     </div>
+    <button id="btn-city" class="city-btn" aria-haspopup="dialog" title="切換城市">
+      <span id="city-btn-flag" class="city-flag">🇩🇪</span>
+      <span class="city-btn-text"><b id="city-btn-name">德勒斯登</b><small>切換城市</small></span>
+    </button>
     <div class="searchbox">
-      <input id="search" type="search" placeholder="搜尋Stadtteil、地址或地點（Nominatim）" autocomplete="off">
+      <input id="search" type="search" placeholder="搜尋分區、地址或地點" autocomplete="off">
       <div id="search-results" class="results" hidden></div>
     </div>
     <div class="actions">
@@ -33,22 +37,23 @@
       <button class="tab active" data-tab="layers">圖層</button>
       <button class="tab" data-tab="overview">概況</button>
       <button class="tab" data-tab="stats">統計</button>
+      <button class="tab" data-tab="compare">比較</button>
       <button class="tab" data-tab="annotate">註記</button>
       <button class="tab" data-tab="data">資料</button>
     </nav>
 
 
     <section id="panel-3d" class="panel" hidden>
-      <div class="city-model-heading"><span class="eyebrow">DRESDEN / CITY MODEL</span><h2>德勒斯登城市數位模型</h2><p>官方建築量體 · GeoSN LoD1</p><p class="author">Yun-Ching Wu｜吳昀慶｜<a href="mailto:D15544002@ntu.edu.tw">D15544002@ntu.edu.tw</a></p></div>
-      <p id="buildings-status" class="model-status" role="status" aria-live="polite">開啟 3D 以瀏覽建築模型。</p>
-      <div class="model-places">
-        <button data-place="13.740,51.052">Altstadt<br><small>舊城・易北河</small></button>
-        <button data-place="13.752,51.066">Neustadt<br><small>新城街廓</small></button>
-        <button data-place="13.729,51.028">TU Dresden<br><small>大學周邊</small></button>
-        <button id="model-coverage">資料範圍<br><small>查看已收錄區塊</small></button>
+      <div class="city-model-heading">
+        <span class="eyebrow" id="model-eyebrow">DRESDEN / CITY MODEL</span>
+        <h2 id="model-title">德勒斯登城市數位模型</h2>
+        <p id="model-sub">官方建築量體 · GeoSN LoD1</p>
+        <p class="author">Yun-Ching Wu｜吳昀慶｜<a href="mailto:D15544002@ntu.edu.tw">D15544002@ntu.edu.tw</a></p>
       </div>
+      <p id="buildings-status" class="model-status" role="status" aria-live="polite">開啟 3D 以瀏覽建築模型。</p>
+      <div class="model-places" id="model-places"></div>
       <h2>視角與量體</h2>
-      <label class="row small"><input id="buildings-visible" type="checkbox" checked> 顯示官方建築量體</label>
+      <label class="row small"><input id="buildings-visible" type="checkbox" checked> 顯示建築量體</label>
       <label class="row small" for="model-pitch">傾斜角度 <output id="model-pitch-value">55°</output></label>
       <input id="model-pitch" type="range" min="0" max="70" value="55" aria-label="傾斜角度">
       <div class="row"><button id="model-north" class="ghost">北向復位</button><button id="model-retry" class="ghost">重新載入</button></div>
@@ -58,13 +63,19 @@
       <p class="small muted">高度分色：0 / 10 / 20 / 40 / 80 公尺。高度比例 1:1。</p>
       <div class="model-note small">拖曳平移、滾輪縮放；按住滑鼠右鍵拖曳旋轉與傾斜。觸控裝置可雙指操作，也可使用上方滑桿。</div>
       <h2>資料與判讀</h2>
-      <p class="small">建築為官方 LoD1 方塊模型，保留輪廓與模型高度；屋頂已簡化。點擊建築查看高度及原始資料年份。地面採平面基準，尚未套用地形高程。每次最多載入鄰近 16 個區塊；移動或放大可瀏覽其他區域。</p>
+      <p class="small only-dresden">建築為官方 LoD1 方塊模型，保留輪廓與模型高度；屋頂已簡化。點擊建築查看高度及原始資料年份。地面採平面基準，尚未套用地形高程。每次最多載入鄰近 16 個區塊；移動或放大可瀏覽其他區域。</p>
+      <p class="small only-taipei">臺北尚未附帶官方 LoD1 模型，改以 OpenStreetMap 建築輪廓即時建模：高度優先取 <code>height</code> 標籤，其次以樓層數 × 3.2 公尺推估，皆無則以 9 公尺代入。<b>高度屬推估值，不可作為法定高度或日照分析依據</b>。放大到街區尺度（z≥15）才會載入。</p>
       <p id="model-inventory" class="small muted"></p>
-      <p class="small muted">「圖層」中已開啟的 WMS、設施與分區會同步至 3D。CSV 分級設色、WMS 屬性查詢與列印請切回 2D 使用。</p>
-      <ul class="small links">
+      <p class="small muted">「圖層」中已開啟的 WMS、圖磚、設施與分區會同步至 3D。CSV 分級設色、WMS 屬性查詢與列印請切回 2D 使用。</p>
+      <ul class="small links only-dresden">
         <li><a href="https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html" target="_blank" rel="noopener">GeoSN 官方 LoD1 / LoD2 下載</a></li>
         <li><a href="https://www.geodaten.sachsen.de/batch-download-4719.html" target="_blank" rel="noopener">官方批次下載（可取得屋頂細節 LoD2）</a></li>
         <li><a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">GeoSN · dl-de/by-2-0 授權</a></li>
+      </ul>
+      <ul class="small links only-taipei">
+        <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap · ODbL 授權</a></li>
+        <li><a href="https://maps.nlsc.gov.tw" target="_blank" rel="noopener">國土測繪圖資服務雲（含全國 3D 建物模型）</a></li>
+        <li><a href="https://data.taipei" target="_blank" rel="noopener">臺北市資料大平臺</a></li>
       </ul>
     </section>
 
@@ -74,27 +85,24 @@
         <button id="btn-reset" class="mini">回到全市</button>
       </div>
       <div id="layer-list"></div>
-      <p class="muted small footnote">
-        「官方WMS」由Landeshauptstadt Dresden（kommisdd.dresden.de）即時提供，依NodeId對應opendata.dresden.de的資料集；
-        「OSM」由Overpass API即時查詢OpenStreetMap。點擊地圖可查詢已開啟官方圖層的屬性。
-      </p>
+      <p class="muted small footnote" id="layers-footnote"></p>
     </section>
 
     <section id="panel-overview" class="panel" hidden>
-      <h2>市域概況</h2>
-      <p class="muted small">參考值，請以Kommunale Statistikstelle Dresden最新出版品（Stadtteilkatalog、Statistisches Jahrbuch）為準。</p>
+      <h2 id="overview-title">市域概況</h2>
+      <p class="muted small" id="overview-note"></p>
       <div id="facts"></div>
       <h2>規劃情境</h2>
-      <p class="muted small">一鍵套用常用圖層組合。</p>
+      <p class="muted small">一鍵套用常用圖層組合。切換城市後，同名情境會套用該市對應的圖層。</p>
       <div id="presets"></div>
       <h2>怎麼用</h2>
       <ol class="small howto">
-        <li>先開「Stadtteile」當骨架，再疊法定計畫（B-Plan）或設施圖層。</li>
-        <li>點任一Stadtteil：右側「統計」顯示面積、所屬Stadtbezirk與各設施數。</li>
-        <li>「統計」頁籤可依Stadtteil或Stadtbezirk排序設施密度（/km²）。</li>
-        <li>「資料」頁籤可貼上opendata.dresden.de的CSV（如Einwohner ab Stadtteil）做choropleth。</li>
-        <li>其他官方資料集：在opendata.dresden.de找到WMS連結的NodeId，於「資料」頁籤加入。</li>
+        <li>先開分區圖層當骨架，再疊法定計畫或設施圖層。</li>
+        <li>點任一分區：「統計」頁籤顯示面積與各設施數。</li>
+        <li>「比較」頁籤以完全相同的OSM查詢在兩市各跑一次，產生可對照的指標。</li>
+        <li>「資料」頁籤可貼上官方CSV做choropleth，或加入自訂圖層。</li>
         <li>「註記」頁籤可落Pin、畫線、畫範圍並加說明，2D與3D皆可用；匯出GeoJSON即可帶回QGIS。</li>
+        <li>左上角城市按鈕可切換德勒斯登與臺北，圖層、統計與3D模型會一併切換。</li>
       </ol>
     </section>
 
@@ -104,14 +112,40 @@
       <div class="row">
         <select id="stats-layer"></select>
       </div>
-      <label class="row small"><input type="checkbox" id="stats-bezirk"> 依Stadtbezirk / Ortschaft彙整</label>
+      <label class="row small" id="stats-bezirk-row"><input type="checkbox" id="stats-bezirk"> 依Stadtbezirk / Ortschaft彙整</label>
       <div id="stats-table" data-sort="val" data-dir="desc"></div>
       <div id="choro-legend" class="card" hidden></div>
     </section>
 
+    <section id="panel-compare" class="panel" hidden>
+      <h2>雙城比較</h2>
+      <p class="muted small">兩市使用<b>完全相同的OSM查詢</b>，各自以行政界線做點在多邊形內判斷，因此不會混入新北市或Radebeul等鄰接地區。</p>
+      <div id="compare-heads" class="compare-heads"></div>
+      <div id="compare-outline" class="compare-outline"></div>
+      <h2>基本數字</h2>
+      <div id="compare-basic"></div>
+      <h2>OSM可比指標</h2>
+      <div class="row compare-actions">
+        <button id="compare-run">載入指標</button>
+        <button id="compare-refresh" class="ghost mini">重新查詢</button>
+        <button id="compare-export" class="ghost mini">匯出CSV</button>
+      </div>
+      <p id="compare-status" class="small muted">指標需向Overpass查詢兩市資料，約需1至2分鐘；結果會存在此瀏覽器。</p>
+      <div class="row small">
+        <label for="compare-norm">呈現方式</label>
+        <select id="compare-norm">
+          <option value="pop">每10萬人</option>
+          <option value="area">每km²</option>
+          <option value="abs">絕對數量</option>
+        </select>
+      </div>
+      <div id="compare-table"></div>
+      <p class="muted small">OSM資料由志願者維護，兩地的標記習慣與完整度不同（例如臺北的便利商店、德勒斯登的Kleingarten）。指標適合看數量級與結構差異，不適合當作官方統計引用。</p>
+    </section>
+
     <section id="panel-annotate" class="panel" hidden>
       <h2>註記工具</h2>
-      <p class="muted small">在2D或3D地圖上落Pin、畫路線與畫範圍，並加上標題與說明。註記自動保存在此瀏覽器，可匯出GeoJSON或Markdown。</p>
+      <p class="muted small">在2D或3D地圖上落Pin、畫路線與畫範圍，並加上標題與說明。註記自動保存在此瀏覽器，可匯出GeoJSON或Markdown。切換城市不會清除註記。</p>
       <div id="annot-tools" class="annot-tools">
         <button data-tool="pin" class="ghost" title="落Pin">📍 落Pin</button>
         <button data-tool="line" class="ghost" title="畫線">〰 畫線</button>
@@ -146,8 +180,9 @@
 
     <section id="panel-data" class="panel" hidden>
       <h2>匯入指標（CSV → choropleth）</h2>
-      <p class="muted small">貼上含Stadtteil代碼（01–99）或名稱欄位的CSV，例如opendata.dresden.de的「Einwohner ab Stadtteil」。分隔符號自動偵測（; , Tab）。</p>
-      <textarea id="csv-text" rows="6" placeholder="Stadtteil;Einwohner&#10;01;7100&#10;02;7500&#10;..."></textarea>
+      <p class="muted small only-dresden">貼上含Stadtteil代碼（01–99）或名稱欄位的CSV，例如opendata.dresden.de的「Einwohner ab Stadtteil」。分隔符號自動偵測（; , Tab）。</p>
+      <p class="muted small only-taipei">貼上含行政區名稱（如「中正區」）或代碼欄位的CSV，例如臺北市資料大平臺的「各區土地人口按月別」。分隔符號自動偵測（; , Tab）。</p>
+      <textarea id="csv-text" rows="6" placeholder="區別,人口數&#10;中正區,157000&#10;大同區,124000&#10;..."></textarea>
       <div class="row"><input type="file" id="csv-file" accept=".csv,.txt,.tsv"></div>
       <div class="row"><label class="small">鍵欄位</label><select id="csv-key"></select></div>
       <div class="row"><label class="small">數值欄位</label><select id="csv-val"></select></div>
@@ -156,10 +191,13 @@
       <div class="row"><button id="csv-apply">套用</button><button id="csv-clear" class="ghost">清除</button></div>
       <p id="csv-info" class="small muted"></p>
 
-      <h2>加入官方WMS圖層</h2>
-      <p class="muted small">在opendata.dresden.de任一資料集頁面找到「WMS」連結，複製網址中的 <code>NodeId</code> 數字。圖層名稱通常可自動偵測；若無法顯示，請自GetCapabilities查 <code>&lt;Name&gt;</code> 後填入。</p>
-      <div class="row"><label class="small">NodeId</label><input id="custom-nodeid" type="text" placeholder="例如489"></div>
-      <div class="row"><label class="small">或WMS URL</label><input id="custom-wms-url" type="url" placeholder="https://…/ogc.ashx?NodeId=…&Service=WMS"></div>
+      <h2>加入自訂圖層</h2>
+      <div class="only-dresden">
+        <p class="muted small">在opendata.dresden.de任一資料集頁面找到「WMS」連結，複製網址中的 <code>NodeId</code> 數字。圖層名稱通常可自動偵測；若無法顯示，請自GetCapabilities查 <code>&lt;Name&gt;</code> 後填入。</p>
+        <div class="row"><label class="small">NodeId</label><input id="custom-nodeid" type="text" placeholder="例如489"></div>
+      </div>
+      <p class="muted small only-taipei">臺北市的官方系統多以查詢介面提供，較少開放WMS；若有可用的OGC服務（如國土測繪中心WMS），可直接填入網址。</p>
+      <div class="row"><label class="small">WMS URL</label><input id="custom-wms-url" type="url" placeholder="https://…/wms?"></div>
       <div class="row"><label class="small">LAYERS</label><input id="custom-wms-layers" type="text" placeholder="（選填）"></div>
       <div class="row"><label class="small">顯示名稱</label><input id="custom-wms-name" type="text" placeholder="（選填）"></div>
       <div class="row"><button id="custom-wms-add">加入WMS</button></div>
@@ -171,7 +209,7 @@
       <div class="row"><label class="small">或上傳檔案</label><input type="file" id="custom-geojson-file" accept=".geojson,.json"></div>
 
       <h2>常用官方資料集</h2>
-      <ul class="small links">
+      <ul class="small links only-dresden">
         <li><a href="https://opendata.dresden.de" target="_blank" rel="noopener">opendata.dresden.de</a>：1,100+ 資料集（dl-de/by-2-0）</li>
         <li><a href="https://opendata.dresden.de/?q=Flächennutzungsplan" target="_blank" rel="noopener">Flächennutzungsplan</a>、<a href="https://opendata.dresden.de/?q=Bebauungsplan" target="_blank" rel="noopener">Bebauungspläne</a>、<a href="https://opendata.dresden.de/?q=Sanierungsgebiet" target="_blank" rel="noopener">Sanierungsgebiete</a></li>
         <li><a href="https://opendata.dresden.de/?q=Einwohner+Stadtteil" target="_blank" rel="noopener">Einwohner nach Stadtteilen</a>（CSV，可直接匯入上方）</li>
@@ -179,19 +217,47 @@
         <li><a href="https://www.dresden.de/de/leben/stadtportrait/statistik/publikationen/interaktive-anwendungen/stadtteilkatalog.php" target="_blank" rel="noopener">Stadtteilkatalog</a>（Kommunale Statistikstelle）</li>
         <li><a href="https://stadtplan.dresden.de" target="_blank" rel="noopener">Themenstadtplan Dresden</a>（官方互動地圖）</li>
       </ul>
+      <ul class="small links only-taipei">
+        <li><a href="https://data.taipei" target="_blank" rel="noopener">臺北市資料大平臺</a>：各局處開放資料（CC BY 4.0為主）</li>
+        <li><a href="https://data.taipei/dataset?q=%E5%90%84%E5%8D%80%E5%9C%9F%E5%9C%B0%E4%BA%BA%E5%8F%A3" target="_blank" rel="noopener">各區土地人口按月別</a>、<a href="https://data.taipei/dataset?q=%E5%90%84%E9%87%8C%E4%BA%BA%E5%8F%A3" target="_blank" rel="noopener">各里人口數</a>（CSV，可直接匯入上方）</li>
+        <li><a href="https://zone.udd.gov.taipei/" target="_blank" rel="noopener">土地使用分區查詢</a>、<a href="https://webgis.udd.gov.taipei/" target="_blank" rel="noopener">都市計畫整合查詢</a>（都發局）</li>
+        <li><a href="https://maps.nlsc.gov.tw" target="_blank" rel="noopener">國土測繪圖資服務雲</a>：通用版電子地圖、正射影像、地籍與國土利用調查WMTS</li>
+        <li><a href="https://gis.sinica.edu.tw/taipei/" target="_blank" rel="noopener">臺北百年歷史地圖</a>（中央研究院）</li>
+        <li><a href="https://dmap.ncdr.nat.gov.tw/" target="_blank" rel="noopener">災害潛勢地圖</a>（國家災害防救科技中心）</li>
+      </ul>
     </section>
   </aside>
 
   <main id="map" role="application" aria-label="地圖"></main>
-  <section id="map3d" role="region" aria-label="Dresden 3D 建築地圖" hidden></section>
+  <section id="map3d" role="region" aria-label="3D 建築地圖" hidden></section>
   <div id="hoverbox" class="hoverbox" hidden></div>
+
+  <div id="city-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="city-modal-title">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="city-modal-title">切換城市</h2>
+        <button id="city-modal-close" class="annot-x" title="關閉">×</button>
+      </div>
+      <p class="muted small">兩座城市面積相近、人口相差四倍以上，是觀察密度、運具與生活機能配置差異的現成對照組。</p>
+      <div id="city-cards" class="city-cards"></div>
+      <div class="row modal-foot">
+        <button id="city-modal-compare" class="ghost">開啟雙城比較</button>
+        <span class="muted small">切換城市會保留註記，並重設圖層為該市預設組合。</span>
+      </div>
+    </div>
+  </div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="data/stadtteile.js"></script>
+  <script src="data/taipei_districts.js"></script>
   <script src="js/geo.js"></script>
   <script src="js/catalog.js"></script>
+  <script src="js/catalog-taipei.js"></script>
+  <script src="js/cities.js"></script>
   <script src="js/buildings3d.js"></script>
   <script src="js/annotate.js"></script>
+  <script src="js/compare.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
