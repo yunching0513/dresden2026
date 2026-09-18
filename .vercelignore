@@ -1,0 +1,7 @@
+# 這是純靜態站，Python工具與測試不需進入部署
+scripts/
+tests/
+node_modules/
+package.json
+package-lock.json
+.github/
