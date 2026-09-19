@@ -143,10 +143,10 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 
 | 城市 | 來源 | 授權與標示 |
 |---|---|---|
-| 德勒斯登 | GeoSN `wms_geosn_hist`：Messtischblatt（1922–1945）、TK25 DDR Ausgabe Staat（1976–1989）、TK25（1990–1996） | dl-de/by-2-0；標示「Landesamt für Geobasisinformation Sachsen (GeoSN)」 |
+| 德勒斯登 | GeoSN `wms_geosn_hist`：`adv_tk25mb`（Messtischblatt，1922–1945）、`adv_tk25as`（TK25 DDR，1976–1989）、`adv_tk25h`（TK25，1990–1996） | dl-de/by-2-0；標示「Landesamt für Geobasisinformation Sachsen (GeoSN)」 |
 | 臺北市 | 中央研究院人社中心GIS專題中心「百年歷史地圖」圖磚：`JM20K_1904`、`JM25K_1921`、`TM25K_1966`、`TM25K_1989` | 依中研院公告之使用規範（學術與非商業使用，需標示來源） |
 
-德勒斯登的歷史圖層以 `layerHint` 指定要取用的圖層：程式先讀GetCapabilities，優先取名稱完全相符者，其次取包含該字串者，跨域受限時直接以hint作為 `LAYERS`。中研院圖磚樣板為 `https://gis.sinica.edu.tw/tileserver/file-exists.php?img={圖層}-jpg-{z}-{x}-{y}`，其他圖層可在其網站查到代碼後，於「資料」頁籤的「加入圖磚圖層」貼入。
+德勒斯登的歷史圖層同時指定 `layers` 與 `layerHint`：程式先讀GetCapabilities，優先取名稱完全相符者、其次取包含hint者；該服務不允許跨域讀取GetCapabilities，因此實際上會退回 `layers` 指定的官方名稱。圖磚本身是以 `<img>` 載入，不受跨域限制影響。每個WMS圖層的說明區都有 `LAYERS` 欄位，服務改版或名稱不符時可直接修改後按「套用」重載，不必等程式更新。中研院圖磚樣板為 `https://gis.sinica.edu.tw/tileserver/file-exists.php?img={圖層}-jpg-{z}-{x}-{y}`，其他圖層可在其網站查到代碼後，於「資料」頁籤的「加入圖磚圖層」貼入。
 
 自行校正的掃描圖（Map Warper、Allmaps等）產生的XYZ樣板同樣可從該處加入，適合把自己數化的都市計畫圖或空照圖帶進來對照。
 
@@ -156,7 +156,7 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 - 臺北里界為OSM轉繪的1982年版編組，共449里，與現行編組（含2018年調整）有出入，僅供概覽；行政區界線亦為OSM轉繪，但面積欄位採民政局公告值（全市271.7997 km²）。
 - 臺北市的土地使用分區、都市更新地區等法定計畫目前沒有穩定的公開OGC服務，目錄中以連結導向都發局查詢系統；NLSC圖磚的圖層代碼若日後調整，需更新 `js/catalog-taipei.js`。
 - 雙城比較的分母：德勒斯登為主要居所登記人口（2025年12月31日，571,510人），臺北市為戶籍人口（2026年7月，約242萬人），統計基準不同；臺北日間活動人口另含大量新北通勤者，「每10萬人」會低估實際使用強度。
-- 德勒斯登正射影像的WMS圖層名稱以GetCapabilities自動偵測，若服務不允許跨域讀取則退回預設名稱 `sn_dop_020`；無法顯示時請在「資料」頁籤手動加入並填寫 `LAYERS`。
+- 薩克森的WMS（正射影像 `sn_dop_020`、歷史地形圖 `adv_tk25*`）不允許跨域讀取GetCapabilities，程式改用目錄中寫死的官方圖層名稱；若日後服務改名，於圖層說明區的 `LAYERS` 欄位修改即可。
 - 公園綠地面積指標只計OSM的way物件，以relation（multipolygon）繪製的公園未納入；自行車道長度以整條way計入其中心點所在城市。
 - 官方WMS圖層名稱會嘗試以GetCapabilities自動偵測；若服務不允許跨域讀取，則以NodeId作為圖層名稱，並在WMS 1.3.0失敗時自動退回1.1.1。無法顯示時，請在「資料」頁籤手動填入 `LAYERS`。
 - GetFeatureInfo若受跨域限制，會提供「在新分頁開啟查詢結果」連結。

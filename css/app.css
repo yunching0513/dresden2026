@@ -381,3 +381,4 @@ table.compare th:first-child, table.compare td:first-child { white-space: nowrap
   background: rgba(29,39,51,.94); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.28);
 }
 @media print { #swipe-handle, .toast { display: none !important; } }
+.layers-input { flex: 1; min-width: 0; font-size: 12px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; }

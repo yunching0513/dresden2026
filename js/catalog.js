@@ -275,22 +275,22 @@
     /* ---------- 歷史地圖 ---------- */
     {
       id: 'hist_mb25', group: 'historie', type: 'wms', verified: true,
-      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layerHint: 'MB25',
-      name: 'Messtischblatt（1922–1945）', de: 'Messtischblatt vor 1945',
+      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layers: 'adv_tk25mb', layerHint: 'tk25mb',
+      name: 'Messtischblatt（1922–1945）', de: 'Messtischblatt vor 1945（adv_tk25mb）',
       desc: '1:25,000地形圖，資料年份1922–1945（部分圖幅為戰後）。可看見1945年轟炸前的舊城紋理與尚未重劃的街廓。',
       source: 'Landesamt für Geobasisinformation Sachsen (GeoSN)', license: 'dl-de/by-2-0', color: '#8d6e63', opacity: 0.85,
     },
     {
       id: 'hist_tk25as', group: 'historie', type: 'wms', verified: true,
-      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layerHint: 'TK25AS',
-      name: 'TK25 DDR（1976–1989）', de: 'TK25 Ausgabe Staat',
+      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layers: 'adv_tk25as', layerHint: 'tk25as',
+      name: 'TK25 DDR（1976–1989）', de: 'TK25 Ausgabe Staat（adv_tk25as）',
       desc: '東德時期的1:25,000地形圖：可對照Plattenbau住宅區、工業用地與電車路網的擴張。',
       source: 'GeoSN', license: 'dl-de/by-2-0', color: '#6d4c41', opacity: 0.85,
     },
     {
       id: 'hist_tk25', group: 'historie', type: 'wms', verified: true,
-      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layerHint: 'TK25',
-      name: 'TK25（1990–1996）', de: 'TK25 ab 1990',
+      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layers: 'adv_tk25h', layerHint: 'tk25h',
+      name: 'TK25（1990–1996）', de: 'TK25 ab 1990（adv_tk25h）',
       desc: '兩德統一初期的1:25,000地形圖，是1990年代都市再結構的起點狀態。',
       source: 'GeoSN', license: 'dl-de/by-2-0', color: '#a1887f', opacity: 0.85,
     },

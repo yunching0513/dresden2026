@@ -241,6 +241,19 @@
       const opacity = el('input', { type: 'range', min: 0, max: 100, value: Math.round((def.opacity || 0.8) * 100) });
       opacity.addEventListener('input', () => { const l = state.layers[id]; if (l && l.leaflet) l.leaflet.setOpacity(opacity.value / 100); });
       body.appendChild(el('div', { class: 'row' }, [el('span', { class: 'small', text: '透明度' }), opacity]));
+      // 服務改版或名稱不符時，可直接改LAYERS重載，不必等程式更新
+      const layersInput = el('input', { type: 'text', class: 'layers-input', id: `lyr-${id}`, value: def.layers || def.layerHint || '', placeholder: 'WMS LAYERS' });
+      const applyLayers = el('button', { class: 'mini ghost', text: '套用' });
+      applyLayers.addEventListener('click', () => {
+        const value = layersInput.value.trim();
+        if (!value) return;
+        def.layers = value;
+        delete def.layerHint;
+        if (state.layers[id]) toggleLayer(id, false);
+        toggleLayer(id, true);
+      });
+      body.appendChild(el('div', { class: 'row' }, [el('span', { class: 'small', text: 'LAYERS' }), layersInput, applyLayers]));
+      body.appendChild(el('p', { class: 'meta small', text: '圖層顯示不出來時，開啟上方的GetCapabilities查 <Name>，填入後按套用。' }));
       body.appendChild(el('div', { class: 'legend-box', id: `lg-${id}` }));
     }
     if (def.type === 'xyz') {
@@ -401,21 +414,25 @@
 
     const start = (layersParam) => {
       entry.layersParam = layersParam;
+      const input = $(`#lyr-${id}`);
+      if (input) input.value = layersParam;
       entry.leaflet = make(layersParam, '1.3.0');
       entry.leaflet.addTo(state.map);
       renderLegend(def, layersParam);
     };
 
-    if (def.layers) { start(def.layers); return; }
-    // 嘗試讀取GetCapabilities自動取得圖層名稱；跨域失敗則以layerHint或NodeId作為圖層名
-    const fallback = def.layerHint || String(def.nodeId);
+    // 有指定圖層名又沒有hint時直接使用；否則讀GetCapabilities，讀不到才退回指定值。
+    // 跨域限制只影響GetCapabilities這個XHR，圖磚本身是<img>載入，不受CORS影響。
+    if (def.layers && !def.layerHint) { start(def.layers); return; }
+    const fallback = def.layers || def.layerHint || String(def.nodeId);
     fetchCapabilities(url).then((names) => {
       if (!names || !names.length) return start(fallback);
       if (!def.layerHint) return start(names.join(','));
+      entry.capabilityNames = names;
       const hint = def.layerHint.toLowerCase();
       const exact = names.find((n) => n.toLowerCase() === hint);
       const partial = names.filter((n) => n.toLowerCase().indexOf(hint) >= 0);
-      start(exact || (partial.length ? partial[0] : names[0]));
+      start(exact || (partial.length ? partial[0] : fallback));
     }).catch(() => start(fallback));
   }
 
