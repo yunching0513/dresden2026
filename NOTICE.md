@@ -18,6 +18,11 @@
 - **National Land Surveying and Mapping Center (NLSC) WMTS tiles** are loaded at runtime from
   wmts.nlsc.gov.tw (layers EMAP, PHOTO2, LANDSECT, LUIMAP) under the terms of the
   國土測繪圖資服務雲 (https://maps.nlsc.gov.tw). Attribution: "內政部國土測繪中心".
+- **GeoSN Saxony digital orthophotos** are loaded at runtime as WMS tiles from
+  geodienste.sachsen.de (`wms_geosn_dop-rgb`) under Datenlizenz Deutschland – Namensnennung – Version 2.0
+  (dl-de/by-2-0). Attribution: "Geodaten Sachsen".
+- **No Google Maps content** is used anywhere in this project. Google Maps tiles may not be consumed
+  outside the official Google Maps Platform APIs, so they are deliberately absent from the basemap list.
 - **MapLibre GL JS 5.6.1** (`vendor/maplibre/`): BSD-3-Clause. See `vendor/maplibre/LICENSE.txt`.
 - **Dresden LoD1 building geometry** (`data/buildings/`): Quelle: GeoSN, dl-de/by-2-0.
   Source: https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html

@@ -104,12 +104,41 @@ Flächennutzungsplan（FNP 2020）、Lärmkartierung、Klimafunktionskarte、Kul
 
 圖磚網址格式：`https://wmts.nlsc.gov.tw/wmts/{代碼}/default/GoogleMapsCompatible/{z}/{y}/{x}`。
 
+## 底圖與授權
+
+| 底圖 | 來源 | 授權與標示 |
+|---|---|---|
+| OpenStreetMap、CARTO Positron／Dark | OSM contributors／CARTO | ODbL；需標示「© OpenStreetMap contributors」 |
+| OpenTopoMap | OpenTopoMap | CC-BY-SA |
+| 通用版電子地圖、正射影像（臺北預設） | 內政部國土測繪中心WMTS（EMAP、PHOTO2） | 國土測繪圖資服務雲使用規範；標示「內政部國土測繪中心」 |
+| 正射影像（德勒斯登） | GeoSN薩克森 `wms_geosn_dop-rgb` | dl-de/by-2-0；標示「Geodaten Sachsen」 |
+
+「官方正射影像」在並列模式中會讓兩側各自使用自己國家的官方影像，兩市仍維持相同的地面比例尺。
+
+### 為什麼沒有Google底圖
+
+Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platform的條款禁止以官方API以外的方式取得圖磚，也禁止預取與快取，並限制把Google的內容顯示在非Google的地圖上。直接指向 `mt*.google.com/vt/` 的作法違反條款，不適合放進要公開、要被引用的研究工具。
+
+合法的路徑有兩條：
+
+1. **Map Tiles API**（2D圖磚）：需要自己的API key、啟用帳務，並以session token取得圖磚；官方支援第三方繪圖引擎，圖上必須顯示Google與各資料提供者的標示。屬Essentials級SKU，有每月免費額度（2025年3月起已取消舊的每月200美元抵用額，改為各SKU分別計算）。
+2. **Maps JavaScript API**：由Google自己的繪圖引擎顯示地圖，本專案的向量圖層就得改寫成Google的overlay。
+
+兩條都需要你自己的帳號與金鑰，金鑰不應寫進這個公開repo。若要接，建議做成「填入金鑰才啟用」的選用底圖。
+
+### 學術使用的界線
+
+- **論文插圖**：依Google的Geo Guidelines，教育與非商業用途的截圖不需另外申請授權，但必須保留圖上的「Google」與資料提供者標示（例如「Map data ©2026 Google」），且不得裁掉或塗改標示。投稿前仍建議確認目標期刊的圖片授權規定。
+- **重製與衍生**：不能把Google的影像或圖磚存下來重新散布，也不能用來描繪向量圖資再宣稱為自己的資料。要做數化或量測，請改用官方正射影像（上表兩個來源皆可自由使用並標示來源）。
+- **本專案的建議**：分析與出圖都用官方正射影像與OSM，來源、年份與授權都能寫進圖說，審查與再現性上都比較乾淨。
+
 ## 已知限制
 
 - 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken三個Ortschaft；面積為近似值。
 - 臺北里界為OSM轉繪的1982年版編組，共449里，與現行編組（含2018年調整）有出入，僅供概覽；行政區界線亦為OSM轉繪，但面積欄位採民政局公告值（全市271.7997 km²）。
 - 臺北市的土地使用分區、都市更新地區等法定計畫目前沒有穩定的公開OGC服務，目錄中以連結導向都發局查詢系統；NLSC圖磚的圖層代碼若日後調整，需更新 `js/catalog-taipei.js`。
 - 雙城比較的分母：德勒斯登為主要居所登記人口（2025年12月31日，571,510人），臺北市為戶籍人口（2026年7月，約242萬人），統計基準不同；臺北日間活動人口另含大量新北通勤者，「每10萬人」會低估實際使用強度。
+- 德勒斯登正射影像的WMS圖層名稱以GetCapabilities自動偵測，若服務不允許跨域讀取則退回預設名稱 `sn_dop_020`；無法顯示時請在「資料」頁籤手動加入並填寫 `LAYERS`。
 - 公園綠地面積指標只計OSM的way物件，以relation（multipolygon）繪製的公園未納入；自行車道長度以整條way計入其中心點所在城市。
 - 官方WMS圖層名稱會嘗試以GetCapabilities自動偵測；若服務不允許跨域讀取，則以NodeId作為圖層名稱，並在WMS 1.3.0失敗時自動退回1.1.1。無法顯示時，請在「資料」頁籤手動填入 `LAYERS`。
 - GetFeatureInfo若受跨域限制，會提供「在新分頁開啟查詢結果」連結。

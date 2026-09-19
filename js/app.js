@@ -62,7 +62,7 @@
     if (state.attribution) map.attributionControl.removeAttribution(state.attribution);
     const entries = {};
     state.city.baseLayers.forEach((b, i) => {
-      const layer = L.tileLayer(b.url, b.opts);
+      const layer = makeBaseLayer(b);
       entries[b.name] = layer;
       if (i === 0) layer.addTo(map);
     });
@@ -70,6 +70,19 @@
     state.baseControl = L.control.layers(entries, null, { position: 'topright', collapsed: true }).addTo(map);
     state.attribution = state.city.attribution;
     map.attributionControl.addAttribution(state.attribution);
+  }
+
+  /* 底圖可以是XYZ圖磚或WMS；WMS未指定LAYERS時以GetCapabilities自動偵測。 */
+  function makeBaseLayer(b) {
+    if (!b.wms) return L.tileLayer(b.url, b.opts);
+    const opts = Object.assign({ layers: b.layers || b.fallbackLayers || '' }, b.opts, { crs: L.CRS.EPSG3857 });
+    const layer = L.tileLayer.wms(b.url, opts);
+    if (!b.layers) {
+      fetchCapabilities(b.url).then((names) => {
+        if (names && names.length) layer.setParams({ layers: names[0] });
+      }).catch(() => { /* 跨域受限時沿用fallbackLayers */ });
+    }
+    return layer;
   }
 
   /* ------------------------------------------------------------------ */
@@ -1035,11 +1048,11 @@
     window.DDCompare.init({ state, switchTab, switchCity, runOverpass, osmToFeatures, el, downloadText });
     // 分享連結指定並列模式時不自動開啟3D
     window.DD3D.init({ state, writeHash, switchTab }, h && h.split === '1' ? Object.assign({}, h, { v: '2d' }) : h);
-    window.DDSplit.init({ state, switchTab, el, fetchOsm, popupHtml, writeHash }, h);
+    window.DDSplit.init({ state, switchTab, el, fetchOsm, popupHtml, writeHash, makeBaseLayer }, h);
     writeHash();
     refreshStatsSelect();
   }
 
   document.addEventListener('DOMContentLoaded', boot);
-  window.DDApp = { state, toggleLayer, selectStadtteil, applyPreset, switchCity, fetchOsm, switchTab };
+  window.DDApp = { state, toggleLayer, selectStadtteil, applyPreset, switchCity, fetchOsm, switchTab, makeBaseLayer };
 })();

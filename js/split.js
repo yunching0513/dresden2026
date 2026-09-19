@@ -74,8 +74,9 @@
     const map = maps[cityId];
     if (!map) return;
     if (bases[cityId]) map.removeLayer(bases[cityId]);
-    const b = BASEMAPS[key] || BASEMAPS.positron;
-    bases[cityId] = L.tileLayer(b.url, b.opts).addTo(map);
+    // 「官方正射影像」在兩側各自取用該市的官方來源（GeoSN／國土測繪中心）
+    const b = key === 'imagery' ? CITIES[cityId].imagery : (BASEMAPS[key] || BASEMAPS.positron);
+    bases[cityId] = app.makeBaseLayer(b).addTo(map);
     bases[cityId].bringToBack();
   }
 
@@ -232,6 +233,7 @@
 
     const baseSel = $('#split-base');
     Object.entries(BASEMAPS).forEach(([key, b]) => baseSel.appendChild(app.el('option', { value: key, text: b.name })));
+    baseSel.appendChild(app.el('option', { value: 'imagery', text: '官方正射影像（各市官方來源）' }));
     baseSel.value = 'positron';
     baseSel.addEventListener('change', () => ORDER.forEach((id) => setBase(id, baseSel.value)));
 

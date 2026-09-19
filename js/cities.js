@@ -16,6 +16,17 @@
     topo: { name: 'OpenTopoMap', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)' } },
   };
 
+  /* 官方正射影像：兩市各用自己的國家級來源，授權清楚、可直接在論文中引用。
+   * Google的圖磚不能這樣接（見README「底圖與授權」），因此不列入選單。 */
+  const DOP_SACHSEN = {
+    name: '正射影像（GeoSN 薩克森）',
+    wms: true,
+    url: 'https://geodienste.sachsen.de/wms_geosn_dop-rgb/guest?',
+    fallbackLayers: 'sn_dop_020',
+    opts: { format: 'image/png', transparent: false, version: '1.3.0', maxZoom: 19,
+      attribution: '© <a href="https://www.geodaten.sachsen.de">Geodaten Sachsen</a>（dl-de/by-2-0）' },
+  };
+
   const NLSC_EMAP = { name: '通用版電子地圖（國土測繪中心）', url: 'https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: '<a href="https://maps.nlsc.gov.tw">內政部國土測繪中心</a> 通用版電子地圖' } };
   const NLSC_PHOTO = { name: '正射影像（國土測繪中心）', url: 'https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: '<a href="https://maps.nlsc.gov.tw">內政部國土測繪中心</a> 正射影像' } };
 
@@ -50,7 +61,8 @@
       unit: { one: 'Stadtteil', many: 'Stadtteile', label: '統計分區', parent: 'Stadtbezirk / Ortschaft', hasParent: true },
       boundaries: () => window.DD_STADTTEILE,
       attribution: 'Datenquelle: <a href="https://opendata.dresden.de">Landeshauptstadt Dresden</a> (dl-de/by-2-0)',
-      baseLayers: [CARTO.osm, CARTO.positron, CARTO.dark, CARTO.topo],
+      baseLayers: [CARTO.osm, CARTO.positron, DOP_SACHSEN, CARTO.dark, CARTO.topo],
+      imagery: DOP_SACHSEN,
       stats: {
         area_km2: 328.8,
         population: 571510, populationAsOf: '2025-12-31',
@@ -83,6 +95,7 @@
       boundaries: () => window.DD_TAIPEI_DISTRICTS,
       attribution: '界線：<a href="https://github.com/g0v/twgeojson">g0v/twgeojson</a>（OSM, ODbL）；面積：臺北市政府民政局',
       baseLayers: [NLSC_EMAP, CARTO.osm, CARTO.positron, NLSC_PHOTO, CARTO.dark, CARTO.topo],
+      imagery: NLSC_PHOTO,
       stats: {
         area_km2: 271.7997,
         population: 2420000, populationAsOf: '2026-07',
