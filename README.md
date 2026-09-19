@@ -163,6 +163,19 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 - 設施數以OSM物件中心點落入分區計算，屬概覽性質；正式統計請以Kommunale Statistikstelle的Stadtteilkatalog為準。
 - Overpass為公共服務，大型圖層（森林、住宅用地）需數秒，且有速率限制；結果會在同一頁面內快取。
 
+## 造訪人次
+
+側欄底部顯示累計造訪人次。本站是純靜態網站、沒有自己的後端，因此數字存在外部計數服務（`js/visits.js`）：
+
+- 依序嘗試 [Abacus](https://abacus.jasoncameron.dev)、[CounterAPI](https://counterapi.dev)，第一個回應成功的會記在瀏覽器中，之後優先使用。
+- 同一瀏覽器每天只計一次，其餘時候只讀取數字。
+- 服務全部失效時計數器自動隱藏，不顯示錯誤，也不影響地圖功能。
+
+**隱私**：這些服務只保存一個累計數字，不設cookie、不做跨站追蹤；但與任何網路請求一樣，服務端會看到來訪者的IP。若不希望有第三方參與，有兩個替代作法：
+
+1. **Vercel Web Analytics**：官方、無cookie，數字在Vercel後台，不會顯示在頁面上。
+2. **自架計數端點**：在Vercel加一個函式（`api/visits`）搭配KV或Blob儲存，把 `js/visits.js` 的 `PROVIDERS` 換成自己的端點即可，資料完全留在自己的帳號。
+
 ## 本機執行
 
 ```bash

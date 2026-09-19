@@ -33,6 +33,9 @@
   gis.sinica.edu.tw (layers JM20K_1904, JM25K_1921, TM25K_1966, TM25K_1989). Use is subject to the terms
   published by the Center for GIS, RCHSS, Academia Sinica; attribution to 中央研究院人社中心GIS專題中心 is
   shown on the map. No tile is cached or redistributed by this project.
+- **Visit counter**: the number shown in the sidebar footer is stored by a third-party counter service
+  (Abacus, with CounterAPI as fallback). Only an integer is stored; no cookie is set and no visitor data is
+  kept by this project. The counter hides itself if the services are unavailable.
 - **MapLibre GL JS 5.6.1** (`vendor/maplibre/`): BSD-3-Clause. See `vendor/maplibre/LICENSE.txt`.
 - **Dresden LoD1 building geometry** (`data/buildings/`): Quelle: GeoSN, dl-de/by-2-0.
   Source: https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html

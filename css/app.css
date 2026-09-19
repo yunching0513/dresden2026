@@ -382,3 +382,12 @@ table.compare th:first-child, table.compare td:first-child { white-space: nowrap
 }
 @media print { #swipe-handle, .toast { display: none !important; } }
 .layers-input { flex: 1; min-width: 0; font-size: 12px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; }
+
+/* ---- 側欄頁尾與造訪人次 ---- */
+.sidebar-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 6px 14px; border-top: 1px solid var(--line); background: #fafbfc; flex: none;
+}
+.visit-counter { font-size: 12px; color: var(--muted); cursor: help; }
+.visit-counter b { color: var(--ink); font-variant-numeric: tabular-nums; }
+@media print { .sidebar-foot { display: none !important; } }
