@@ -21,8 +21,12 @@
 - **GeoSN Saxony digital orthophotos** are loaded at runtime as WMS tiles from
   geodienste.sachsen.de (`wms_geosn_dop-rgb`) under Datenlizenz Deutschland – Namensnennung – Version 2.0
   (dl-de/by-2-0). Attribution: "Geodaten Sachsen".
-- **No Google Maps content** is used anywhere in this project. Google Maps tiles may not be consumed
-  outside the official Google Maps Platform APIs, so they are deliberately absent from the basemap list.
+- **Google Maps content** is never bundled with or proxied by this project. Google basemaps are available
+  only as an opt-in layer served through the official Google Map Tiles API, using an API key that the end
+  user supplies and that is stored solely in their own browser (localStorage). Tiles are requested with a
+  session token as the API requires, and the copyright string returned by the viewport endpoint is displayed
+  on the map. No Google tile is cached, stored, or redistributed by this project. Without a key, no Google
+  basemap appears anywhere in the interface.
 - **MapLibre GL JS 5.6.1** (`vendor/maplibre/`): BSD-3-Clause. See `vendor/maplibre/LICENSE.txt`.
 - **Dresden LoD1 building geometry** (`data/buildings/`): Quelle: GeoSN, dl-de/by-2-0.
   Source: https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html

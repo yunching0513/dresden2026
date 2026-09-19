@@ -222,6 +222,13 @@
       <div class="row"><button id="custom-geojson-add">從URL加入</button></div>
       <div class="row"><label class="small">或上傳檔案</label><input type="file" id="custom-geojson-file" accept=".geojson,.json"></div>
 
+      <h2>Google底圖（選用，需自備金鑰）</h2>
+      <p class="muted small">Google Maps的圖磚不能直接接進一般地圖程式庫，必須透過官方的<a href="https://developers.google.com/maps/documentation/tile/overview" target="_blank" rel="noopener">Map Tiles API</a>。請在Google Cloud Console啟用Map Tiles API與帳務、建立API金鑰，並限制金鑰可用的網域後貼在下方。</p>
+      <p class="muted small">金鑰只存在你這台瀏覽器的localStorage，不會寫進本專案，也不會傳給第三方。啟用後圖上會自動顯示Google要求的著作權標示；擷圖用於論文時請保留該標示。若不填金鑰，Google底圖不會出現在任何選單。</p>
+      <div class="row"><label class="small">API金鑰</label><input id="gmaps-key" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false"></div>
+      <div class="row"><button id="gmaps-save">啟用並測試</button><button id="gmaps-clear" class="ghost">移除金鑰</button></div>
+      <p id="gmaps-status" class="small muted"></p>
+
       <h2>常用官方資料集</h2>
       <ul class="small links only-dresden">
         <li><a href="https://opendata.dresden.de" target="_blank" rel="noopener">opendata.dresden.de</a>：1,100+ 資料集（dl-de/by-2-0）</li>
@@ -281,6 +288,7 @@
   <script src="js/cities.js"></script>
   <script src="js/buildings3d.js"></script>
   <script src="js/annotate.js"></script>
+  <script src="js/googletiles.js"></script>
   <script src="js/compare.js"></script>
   <script src="js/split.js"></script>
   <script src="js/app.js"></script>

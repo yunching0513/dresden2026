@@ -75,8 +75,11 @@
     if (!map) return;
     if (bases[cityId]) map.removeLayer(bases[cityId]);
     // 「官方正射影像」在兩側各自取用該市的官方來源（GeoSN／國土測繪中心）
-    const b = key === 'imagery' ? CITIES[cityId].imagery : (BASEMAPS[key] || BASEMAPS.positron);
-    bases[cityId] = app.makeBaseLayer(b).addTo(map);
+    let b;
+    if (key === 'imagery') b = CITIES[cityId].imagery;
+    else if (key.indexOf('google:') === 0) b = window.DDGoogle.typeById(key.slice(7));
+    if (!b) b = BASEMAPS[key] || BASEMAPS.positron;
+    bases[cityId] = app.makeBaseLayer(b, map, CITIES[cityId].locale).addTo(map);
     bases[cityId].bringToBack();
   }
 
@@ -227,14 +230,25 @@
     return `&split=1&sz=${maps[ORDER[0]].getZoom().toFixed(2)}&sa=${a.lat.toFixed(4)},${a.lng.toFixed(4)}&sb=${b.lat.toFixed(4)},${b.lng.toFixed(4)}&sl=${[...on].join(',')}`;
   }
 
+  /* 底圖選單：Google底圖只在使用者填入自己的金鑰後才出現 */
+  function refreshBases() {
+    const baseSel = $('#split-base');
+    if (!baseSel) return;
+    const keep = baseSel.value || 'positron';
+    baseSel.innerHTML = '';
+    Object.entries(BASEMAPS).forEach(([key, b]) => baseSel.appendChild(app.el('option', { value: key, text: b.name })));
+    baseSel.appendChild(app.el('option', { value: 'imagery', text: '官方正射影像（各市官方來源）' }));
+    (window.DDGoogle ? window.DDGoogle.basemaps() : []).forEach((t) => baseSel.appendChild(app.el('option', { value: `google:${t.id}`, text: t.name })));
+    baseSel.value = [...baseSel.options].some((o) => o.value === keep) ? keep : 'positron';
+    if (built) ORDER.forEach((id) => setBase(id, baseSel.value));
+  }
+
   function init(context, hash) {
     app = context;
     themes = buildThemes();
 
     const baseSel = $('#split-base');
-    Object.entries(BASEMAPS).forEach(([key, b]) => baseSel.appendChild(app.el('option', { value: key, text: b.name })));
-    baseSel.appendChild(app.el('option', { value: 'imagery', text: '官方正射影像（各市官方來源）' }));
-    baseSel.value = 'positron';
+    refreshBases();
     baseSel.addEventListener('change', () => ORDER.forEach((id) => setBase(id, baseSel.value)));
 
     renderLayerList();
@@ -263,5 +277,5 @@
     }
   }
 
-  window.DDSplit = { init, open, close, isActive: () => active, hashState };
+  window.DDSplit = { init, open, close, isActive: () => active, hashState, refreshBases };
 })();

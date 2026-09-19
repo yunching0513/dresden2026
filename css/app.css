@@ -357,3 +357,5 @@ table.compare th:first-child, table.compare td:first-child { white-space: nowrap
   body.split #splitview { display: grid !important; width: 100%; height: 92vh; }
   .split-head { box-shadow: none; }
 }
+.gmaps-error { color: var(--warn); }
+#gmaps-key { flex: 1; min-width: 0; }

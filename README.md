@@ -112,19 +112,23 @@ Flächennutzungsplan（FNP 2020）、Lärmkartierung、Klimafunktionskarte、Kul
 | OpenTopoMap | OpenTopoMap | CC-BY-SA |
 | 通用版電子地圖、正射影像（臺北預設） | 內政部國土測繪中心WMTS（EMAP、PHOTO2） | 國土測繪圖資服務雲使用規範；標示「內政部國土測繪中心」 |
 | 正射影像（德勒斯登） | GeoSN薩克森 `wms_geosn_dop-rgb` | dl-de/by-2-0；標示「Geodaten Sachsen」 |
+| Google 街道圖／衛星影像／衛星＋街道（選用） | Google Map Tiles API | 需自備API金鑰與帳務；標示由viewport端點取得後自動顯示 |
 
 「官方正射影像」在並列模式中會讓兩側各自使用自己國家的官方影像，兩市仍維持相同的地面比例尺。
 
-### 為什麼沒有Google底圖
+### Google底圖：填入金鑰才啟用
 
-Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platform的條款禁止以官方API以外的方式取得圖磚，也禁止預取與快取，並限制把Google的內容顯示在非Google的地圖上。直接指向 `mt*.google.com/vt/` 的作法違反條款，不適合放進要公開、要被引用的研究工具。
+Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platform的條款禁止以官方API以外的方式取得圖磚，也禁止預取與快取，並限制把Google的內容顯示在非Google的地圖上。直接指向 `mt*.google.com/vt/` 的作法違反條款，因此本專案不採用。
 
-合法的路徑有兩條：
+本專案走官方的 **Map Tiles API**，做成選用底圖：
 
-1. **Map Tiles API**（2D圖磚）：需要自己的API key、啟用帳務，並以session token取得圖磚；官方支援第三方繪圖引擎，圖上必須顯示Google與各資料提供者的標示。屬Essentials級SKU，有每月免費額度（2025年3月起已取消舊的每月200美元抵用額，改為各SKU分別計算）。
-2. **Maps JavaScript API**：由Google自己的繪圖引擎顯示地圖，本專案的向量圖層就得改寫成Google的overlay。
+1. 在Google Cloud Console啟用Map Tiles API與帳務，建立API金鑰，並限制金鑰可用的HTTP referrer。
+2. 在「資料」頁籤貼上金鑰。金鑰只存在該瀏覽器的localStorage，不會寫進本repo，也不會傳給第三方。
+3. 底圖選單（含並列模式）會出現Google街道圖、衛星影像與衛星＋街道；不填金鑰則完全不出現。
 
-兩條都需要你自己的帳號與金鑰，金鑰不應寫進這個公開repo。若要接，建議做成「填入金鑰才啟用」的選用底圖。
+實作上依條款要求處理三件事：以 `POST /v1/createSession` 取得session token（依地圖類型與語系各一組，德勒斯登用de-DE、臺北用zh-TW），圖磚走 `/v1/2dtiles/{z}/{x}/{y}?session=…&key=…`，並以viewport端點回傳的 `copyright` 字串即時更新圖上的著作權標示。session token在底圖真的被選用時才申請，沒選到的不會用掉配額。
+
+計費屬Essentials級SKU，有每月免費額度；2025年3月起Google已取消舊的每月200美元抵用額，改為各SKU分別計算。另一條路徑是Maps JavaScript API（由Google自己的引擎繪圖），但本專案的向量圖層就得整組改寫成Google的overlay，沒有採用。
 
 ### 學術使用的界線
 
@@ -176,6 +180,7 @@ js/catalog-taipei.js          臺北市圖層目錄、規劃情境、市域概�
 js/app.js                     地圖、圖層載入（WMS／WMTS／Overpass／GeoJSON）、統計、CSV、搜尋、城市切換、hash狀態
 js/compare.js                 城市切換視窗與雙城比較（同尺度輪廓、基本數字、OSM指標）
 js/split.js                   並列雙城地圖（左右兩張圖、鎖定相同地面比例尺、共同圖層）
+js/googletiles.js             選用的Google底圖（Map Tiles API；金鑰由使用者自備，存在瀏覽器）
 js/annotate.js                註記工具（Pin／線／範圍、編輯、localStorage、匯入匯出）
 js/buildings3d.js             3D建築量體（MapLibre GL；GeoSN LoD1 或 OSM即時查詢）
 js/geo.js                     point-in-polygon、面積、分位數等幾何工具

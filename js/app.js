@@ -61,8 +61,9 @@
     if (state.baseControl) { map.removeControl(state.baseControl); state.baseControl = null; }
     if (state.attribution) map.attributionControl.removeAttribution(state.attribution);
     const entries = {};
-    state.city.baseLayers.forEach((b, i) => {
-      const layer = makeBaseLayer(b);
+    const list = state.city.baseLayers.concat(window.DDGoogle ? window.DDGoogle.basemaps() : []);
+    list.forEach((b, i) => {
+      const layer = makeBaseLayer(b, map, state.city.locale);
       entries[b.name] = layer;
       if (i === 0) layer.addTo(map);
     });
@@ -73,7 +74,8 @@
   }
 
   /* 底圖可以是XYZ圖磚或WMS；WMS未指定LAYERS時以GetCapabilities自動偵測。 */
-  function makeBaseLayer(b) {
+  function makeBaseLayer(b, map, locale) {
+    if (b.google) return window.DDGoogle.makeLayer(b, map || state.map, locale || state.city.locale);
     if (!b.wms) return L.tileLayer(b.url, b.opts);
     const opts = Object.assign({ layers: b.layers || b.fallbackLayers || '' }, b.opts, { crs: L.CRS.EPSG3857 });
     const layer = L.tileLayer.wms(b.url, opts);
@@ -1033,6 +1035,9 @@
     applyCityChrome();
     setupCsv();
     setupCustom();
+    window.DDGoogle.init();
+    // 填入或移除金鑰時重建底圖選單
+    window.DDGoogle.onChange(() => { setBaseLayers(); if (window.DDSplit) window.DDSplit.refreshBases(); });
     setupSearch();
     setupUi();
 
