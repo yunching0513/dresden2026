@@ -27,6 +27,12 @@
   session token as the API requires, and the copyright string returned by the viewport endpoint is displayed
   on the map. No Google tile is cached, stored, or redistributed by this project. Without a key, no Google
   basemap appears anywhere in the interface.
+- **GeoSN historical topographic maps** (`wms_geosn_hist`) are loaded at runtime as WMS tiles under
+  dl-de/by-2-0. Attribution: "Landesamt für Geobasisinformation Sachsen (GeoSN)".
+- **Academia Sinica century-old historical maps of Taiwan** are loaded at runtime as tiles from
+  gis.sinica.edu.tw (layers JM20K_1904, JM25K_1921, TM25K_1966, TM25K_1989). Use is subject to the terms
+  published by the Center for GIS, RCHSS, Academia Sinica; attribution to 中央研究院人社中心GIS專題中心 is
+  shown on the map. No tile is cached or redistributed by this project.
 - **MapLibre GL JS 5.6.1** (`vendor/maplibre/`): BSD-3-Clause. See `vendor/maplibre/LICENSE.txt`.
 - **Dresden LoD1 building geometry** (`data/buildings/`): Quelle: GeoSN, dl-de/by-2-0.
   Source: https://www.geodaten.sachsen.de/downloadbereich-digitale-3d-stadtmodelle-4875.html

@@ -24,6 +24,7 @@
     { id: 'daseins', title: '公共設施與生活機能', hint: '教育、醫療、日常採買與休憩設施：檢視15分鐘生活圈的基礎。' },
     { id: 'umwelt', title: '環境、綠地與地形', hint: '保護區、公園、綠量與地形。' },
     { id: 'wasser', title: '水系與洪水風險', hint: '易北河洪氾範圍與河川。Dresden於2002、2013年皆曾遭遇重大洪水。' },
+    { id: 'historie', title: '歷史地圖', hint: '同一地點的歷次地形圖：判讀街廓紋理、鐵道與水系的變遷。建議搭配「捲簾比較」使用。' },
   ];
 
   // Overpass查詢用的Dresden範圍 (south, west, north, east)
@@ -271,6 +272,36 @@
       desc: '數值地形模型（高程分帶）。', source: 'Landeshauptstadt Dresden, Vermessungsamt', license: 'dl-de/by-2-0', color: '#a04000', opacity: 0.6,
     },
 
+    /* ---------- 歷史地圖 ---------- */
+    {
+      id: 'hist_mb25', group: 'historie', type: 'wms', verified: true,
+      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layerHint: 'MB25',
+      name: 'Messtischblatt（1922–1945）', de: 'Messtischblatt vor 1945',
+      desc: '1:25,000地形圖，資料年份1922–1945（部分圖幅為戰後）。可看見1945年轟炸前的舊城紋理與尚未重劃的街廓。',
+      source: 'Landesamt für Geobasisinformation Sachsen (GeoSN)', license: 'dl-de/by-2-0', color: '#8d6e63', opacity: 0.85,
+    },
+    {
+      id: 'hist_tk25as', group: 'historie', type: 'wms', verified: true,
+      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layerHint: 'TK25AS',
+      name: 'TK25 DDR（1976–1989）', de: 'TK25 Ausgabe Staat',
+      desc: '東德時期的1:25,000地形圖：可對照Plattenbau住宅區、工業用地與電車路網的擴張。',
+      source: 'GeoSN', license: 'dl-de/by-2-0', color: '#6d4c41', opacity: 0.85,
+    },
+    {
+      id: 'hist_tk25', group: 'historie', type: 'wms', verified: true,
+      url: 'https://geodienste.sachsen.de/wms_geosn_hist/guest?', layerHint: 'TK25',
+      name: 'TK25（1990–1996）', de: 'TK25 ab 1990',
+      desc: '兩德統一初期的1:25,000地形圖，是1990年代都市再結構的起點狀態。',
+      source: 'GeoSN', license: 'dl-de/by-2-0', color: '#a1887f', opacity: 0.85,
+    },
+    {
+      id: 'hist_portal_sn', group: 'historie', type: 'portal',
+      name: 'Meilenblätter與更早的歷史圖資', de: 'Historische Karten Sachsen',
+      desc: '18至19世紀的Meilenblätter等更早期圖資，以及各版本的中繼資料，可在薩克森的地圖服務入口查詢；取得WMS連結後可於「資料」頁籤加入。',
+      portalUrl: 'https://www.landesvermessung.sachsen.de/geodaten-online-3962.html',
+      source: 'GeoSN', license: 'dl-de/by-2-0', color: '#8d6e63',
+    },
+
     /* ---------- 水系與洪水 ---------- */
     {
       id: 'elbe_hq5', group: 'wasser', type: 'wms', nodeId: 1373, verified: true,
@@ -300,6 +331,7 @@
     { id: 'mobility', title: '運具供給', desc: '電車、公車、鐵路、自行車道、共享運具', layers: ['stadtteile', 'osm_tram_lines', 'osm_tram_stops', 'osm_bus_stops', 'osm_rail', 'osm_stations', 'osm_cycleways', 'osm_bike_rental', 'osm_carsharing'] },
     { id: 'green', title: '綠地與環境', desc: '公園、市民農園、森林、景觀保護區、綠量', layers: ['stadtteile', 'osm_parks', 'osm_allotments', 'osm_forest', 'lsg', 'gruenvolumen'] },
     { id: 'risk', title: '洪水與地形風險', desc: '易北河淹沒範圍、河川、地形暈渲', layers: ['stadtteile', 'elbe_hq5', 'fliessgewaesser', 'dgm_shade', 'osm_water'] },
+    { id: 'history', title: '紋理變遷（歷史對照）', desc: '1922–1945、東德時期與1990年代的地形圖', layers: ['stadtteile', 'hist_mb25'] },
   ];
 
   // 市域概況（參考值，請以Kommunale Statistikstelle最新出版品為準）

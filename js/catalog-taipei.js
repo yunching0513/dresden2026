@@ -22,6 +22,7 @@
     { id: 'daseins', title: '公共設施與生活機能', hint: '學校、醫療、市場與宮廟：15分鐘生活圈的基礎盤點。' },
     { id: 'umwelt', title: '環境、綠地與地形', hint: '公園、山坡地與保護區。臺北市近半市域為山區。' },
     { id: 'wasser', title: '水系與洪水風險', hint: '淡水河水系與盆地排水：颱風與極端降雨下的關鍵議題。' },
+    { id: 'historie', title: '歷史地圖', hint: '中研院百年歷史地圖圖磚：日治到戰後的地形圖，判讀水系變遷與市街擴張。建議搭配「捲簾比較」使用。' },
   ];
 
   const BBOX = [24.95, 121.45, 25.22, 121.67];
@@ -283,6 +284,43 @@
       portalUrl: 'https://data.taipei/dataset?q=%E5%B1%B1%E5%9D%A1%E5%9C%B0', source: '臺北市政府／經濟部地質調查及礦業管理中心', license: '依來源', color: '#a04000',
     },
 
+    /* ---------- 歷史地圖 ---------- */
+    {
+      id: 'hist_1904', group: 'historie', type: 'xyz',
+      url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=JM20K_1904-jpg-{z}-{x}-{y}',
+      name: '臺灣堡圖（1904）', de: 'JM20K_1904',
+      desc: '日治初期1:20,000臺灣堡圖（明治版）：可看見尚未市區改正的艋舺、大稻埕街庄與舊河道、埤塘。',
+      source: '中央研究院人社中心GIS專題中心', license: '依中研院使用規範（學術與非商業使用，需標示來源）', color: '#8d6e63', opacity: 0.85,
+    },
+    {
+      id: 'hist_1921', group: 'historie', type: 'xyz',
+      url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=JM25K_1921-jpg-{z}-{x}-{y}',
+      name: '日治二萬五千分之一地形圖（1921）', de: 'JM25K_1921',
+      desc: '市區改正後的臺北：可對照三線道路、鐵道與新設市區計畫街廓。',
+      source: '中央研究院人社中心GIS專題中心', license: '依中研院使用規範', color: '#6d4c41', opacity: 0.85,
+    },
+    {
+      id: 'hist_1966', group: 'historie', type: 'xyz',
+      url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=TM25K_1966-jpg-{z}-{x}-{y}',
+      name: '二萬五千分之一地形圖（1966）', de: 'TM25K_1966',
+      desc: '戰後都市擴張初期：基隆河尚未截彎取直，東區多為農地。',
+      source: '中央研究院人社中心GIS專題中心', license: '依中研院使用規範', color: '#a1887f', opacity: 0.85,
+    },
+    {
+      id: 'hist_1989', group: 'historie', type: 'xyz',
+      url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=TM25K_1989-jpg-{z}-{x}-{y}',
+      name: '二萬五千分之一地形圖（1989）', de: 'TM25K_1989',
+      desc: '捷運動工前後的臺北：可對照信義計畫區、內湖與南港的開發前狀態。',
+      source: '中央研究院人社中心GIS專題中心', license: '依中研院使用規範', color: '#bcaaa4', opacity: 0.85,
+    },
+    {
+      id: 'hist_portal_tw', group: 'historie', type: 'portal',
+      name: '更多歷史圖層（中研院／北市都發局）', de: '百年歷史地圖',
+      desc: '中研院「臺北百年歷史地圖」另有數十個圖層（航照、地籍、各版市街圖），可在其網站取得圖磚樣板後於「資料」頁籤加入；臺北市都發局的「歷史圖資展示系統」亦提供WMTS。',
+      portalUrl: 'https://gis.sinica.edu.tw/taipei/',
+      source: '中央研究院／臺北市政府都市發展局', license: '依各來源規範', color: '#8d6e63',
+    },
+
     /* ---------- 水系與洪水 ---------- */
     {
       id: 'osm_water', group: 'wasser', type: 'overpass', geom: 'polygon',
@@ -312,6 +350,7 @@
     { id: 'mobility', title: '運具供給', desc: '捷運、台鐵、公車站、自行車道、YouBike', layers: ['tpe_districts', 'osm_metro_lines', 'osm_metro_stops', 'osm_rail', 'osm_stations', 'osm_bus_stops', 'osm_cycleways', 'osm_bike_rental'] },
     { id: 'green', title: '綠地與環境', desc: '公園、森林山林、農地與田園基地', layers: ['tpe_districts', 'osm_parks', 'osm_forest', 'osm_farmland'] },
     { id: 'risk', title: '水系與地形風險', desc: '水域、河川排水路、里界（疏散與防災單元）', layers: ['tpe_districts', 'osm_water', 'osm_waterway', 'tpe_villages'] },
+    { id: 'history', title: '紋理變遷（歷史對照）', desc: '1904臺灣堡圖與現況對照', layers: ['tpe_districts', 'hist_1904'] },
   ];
 
   const facts = [

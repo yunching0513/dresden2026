@@ -84,6 +84,7 @@
       <div class="toolbar">
         <button id="btn-clear" class="mini">全部關閉</button>
         <button id="btn-reset" class="mini">回到全市</button>
+        <button id="btn-swipe" class="mini" aria-pressed="false" title="拉一條線比較疊加圖層與底圖現況">捲簾比較</button>
       </div>
       <div id="layer-list"></div>
       <p class="muted small footnote" id="layers-footnote"></p>
@@ -216,6 +217,12 @@
       <div class="row"><label class="small">顯示名稱</label><input id="custom-wms-name" type="text" placeholder="（選填）"></div>
       <div class="row"><button id="custom-wms-add">加入WMS</button></div>
 
+      <h2>加入圖磚圖層（XYZ／WMTS樣板）</h2>
+      <p class="muted small">貼上含 <code>{z}</code>、<code>{x}</code>、<code>{y}</code> 的圖磚樣板，可加入中研院百年歷史地圖的其他圖層、機關的WMTS，或你自己用<a href="https://mapwarper.net" target="_blank" rel="noopener">Map Warper</a>、<a href="https://allmaps.org" target="_blank" rel="noopener">Allmaps</a>校正過的掃描圖。加入後可調整透明度，並用「圖層」頁籤的捲簾比較。</p>
+      <div class="row"><label class="small">圖磚樣板</label><input id="custom-xyz-url" type="url" placeholder="https://…/{z}/{x}/{y}.png"></div>
+      <div class="row"><label class="small">名稱</label><input id="custom-xyz-name" type="text" placeholder="（選填）"></div>
+      <div class="row"><button id="custom-xyz-add">加入圖磚</button></div>
+
       <h2>加入GeoJSON</h2>
       <div class="row"><label class="small">URL</label><input id="custom-geojson-url" type="url" placeholder="https://…/xxx.geojson"></div>
       <div class="row"><label class="small">名稱</label><input id="custom-geojson-name" type="text" placeholder="（選填）"></div>
@@ -262,6 +269,7 @@
   </section>
   <section id="map3d" role="region" aria-label="3D 建築地圖" hidden></section>
   <div id="hoverbox" class="hoverbox" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <div id="city-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="city-modal-title">
     <div class="modal-backdrop" data-close="1"></div>
@@ -289,6 +297,7 @@
   <script src="js/buildings3d.js"></script>
   <script src="js/annotate.js"></script>
   <script src="js/googletiles.js"></script>
+  <script src="js/swipe.js"></script>
   <script src="js/compare.js"></script>
   <script src="js/split.js"></script>
   <script src="js/app.js"></script>

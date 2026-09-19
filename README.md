@@ -58,7 +58,10 @@ WMS、官方圖磚與一般向量圖層可疊在 3D；CSV 分級設色、WMS 屬
 | **概況** | 市域關鍵數字（面積、人口、行政分區、海拔、FNP生效日等）與六個「規劃情境」一鍵套用圖層組合：市域概況、法定計畫與開發壓力、生活機能（15分鐘城市）、運具供給、綠地與環境、洪水與地形風險。 |
 | **統計** | 點任一分區顯示面積與各設施數（含每km²密度）。德勒斯登可再彙整為Stadtbezirk／Ortschaft；臺北為12行政區。 |
 | **註記** | 在2D或3D地圖上落Pin、畫路線、畫範圍，填寫標題、類別（觀察／問題點／機會點／提案／待查證…）、顏色與說明；自動計算長度、面積與所在Stadtteil。註記保存在瀏覽器localStorage，可匯出／匯入GeoJSON、匯出Markdown摘要。 |
+| **歷史地圖** | 圖層目錄中的「歷史地圖」群組：德勒斯登接GeoSN歷史地形圖WMS（Messtischblatt 1922–1945、東德TK25 1976–1989、TK25 1990–1996），臺北接中央研究院百年歷史地圖圖磚（1904臺灣堡圖、1921與1966、1989地形圖）。搭配「捲簾比較」可左右拉線對照現況。 |
 | **資料** | 貼上或上傳CSV（德勒斯登：opendata.dresden.de的「Einwohner ab Stadtteil」；臺北：data.taipei的「各區土地人口按月別」）以代碼或名稱對應分區，產生五分位choropleth；加入官方WMS（德勒斯登可用NodeId）；加入GeoJSON（URL或檔案）。 |
+
+「捲簾比較」在「圖層」頁籤的工具列：開啟後地圖上出現一條可拖曳的直線，線左邊顯示已開啟的WMS與圖磚圖層（歷史地圖、正射影像等），右邊只顯示底圖，向量圖層不受影響。列印時捲簾狀態會保留，把手不會印出來。
 
 其他：搜尋（Stadtteil本地比對＋Nominatim地址）、點擊地圖查詢官方WMS屬性（GetFeatureInfo）、WMS圖例、OSM圖層匯出GeoJSON、URL hash保存檢視（可分享）、列印。
 
@@ -136,6 +139,17 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 - **重製與衍生**：不能把Google的影像或圖磚存下來重新散布，也不能用來描繪向量圖資再宣稱為自己的資料。要做數化或量測，請改用官方正射影像（上表兩個來源皆可自由使用並標示來源）。
 - **本專案的建議**：分析與出圖都用官方正射影像與OSM，來源、年份與授權都能寫進圖說，審查與再現性上都比較乾淨。
 
+### 歷史地圖的來源與授權
+
+| 城市 | 來源 | 授權與標示 |
+|---|---|---|
+| 德勒斯登 | GeoSN `wms_geosn_hist`：Messtischblatt（1922–1945）、TK25 DDR Ausgabe Staat（1976–1989）、TK25（1990–1996） | dl-de/by-2-0；標示「Landesamt für Geobasisinformation Sachsen (GeoSN)」 |
+| 臺北市 | 中央研究院人社中心GIS專題中心「百年歷史地圖」圖磚：`JM20K_1904`、`JM25K_1921`、`TM25K_1966`、`TM25K_1989` | 依中研院公告之使用規範（學術與非商業使用，需標示來源） |
+
+德勒斯登的歷史圖層以 `layerHint` 指定要取用的圖層：程式先讀GetCapabilities，優先取名稱完全相符者，其次取包含該字串者，跨域受限時直接以hint作為 `LAYERS`。中研院圖磚樣板為 `https://gis.sinica.edu.tw/tileserver/file-exists.php?img={圖層}-jpg-{z}-{x}-{y}`，其他圖層可在其網站查到代碼後，於「資料」頁籤的「加入圖磚圖層」貼入。
+
+自行校正的掃描圖（Map Warper、Allmaps等）產生的XYZ樣板同樣可從該處加入，適合把自己數化的都市計畫圖或空照圖帶進來對照。
+
 ## 已知限制
 
 - 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken三個Ortschaft；面積為近似值。
@@ -181,6 +195,7 @@ js/app.js                     地圖、圖層載入（WMS／WMTS／Overpass／Ge
 js/compare.js                 城市切換視窗與雙城比較（同尺度輪廓、基本數字、OSM指標）
 js/split.js                   並列雙城地圖（左右兩張圖、鎖定相同地面比例尺、共同圖層）
 js/googletiles.js             選用的Google底圖（Map Tiles API；金鑰由使用者自備，存在瀏覽器）
+js/swipe.js                   捲簾比較（以clip-path裁切WMS與圖磚圖層）
 js/annotate.js                註記工具（Pin／線／範圍、編輯、localStorage、匯入匯出）
 js/buildings3d.js             3D建築量體（MapLibre GL；GeoSN LoD1 或 OSM即時查詢）
 js/geo.js                     point-in-polygon、面積、分位數等幾何工具

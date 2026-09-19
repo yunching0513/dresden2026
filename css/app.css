@@ -359,3 +359,25 @@ table.compare th:first-child, table.compare td:first-child { white-space: nowrap
 }
 .gmaps-error { color: var(--warn); }
 #gmaps-key { flex: 1; min-width: 0; }
+
+/* ---- 捲簾比較與提示 ---- */
+#swipe-handle {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; z-index: 650;
+  background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); cursor: ew-resize; touch-action: none;
+}
+.swipe-grip {
+  position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px;
+  background: #fff; border: 1px solid var(--line); border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.swipe-grip::before { content: '⇄'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--ink); }
+.swipe-label {
+  position: absolute; top: 12px; font-size: 11px; background: rgba(255,255,255,.92); border: 1px solid var(--line);
+  border-radius: 4px; padding: 2px 6px; white-space: nowrap; color: var(--muted);
+}
+.swipe-left { right: 8px; } .swipe-right { left: 8px; }
+#btn-swipe[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 2500; max-width: min(560px, 90vw);
+  background: rgba(29,39,51,.94); color: #fff; padding: 9px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.28);
+}
+@media print { #swipe-handle, .toast { display: none !important; } }

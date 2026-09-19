@@ -282,6 +282,14 @@
     return def.type;
   }
 
+  function notify(text) {
+    const box = $('#toast');
+    box.textContent = text;
+    box.hidden = false;
+    clearTimeout(notify._t);
+    notify._t = setTimeout(() => { box.hidden = true; }, 4200);
+  }
+
   function setStatus(id, text, cls) {
     const s = $(`#st-${id}`);
     if (!s) return;
@@ -399,10 +407,16 @@
     };
 
     if (def.layers) { start(def.layers); return; }
-    // 嘗試讀取GetCapabilities自動取得圖層名稱；跨域失敗則以NodeId作為圖層名
+    // 嘗試讀取GetCapabilities自動取得圖層名稱；跨域失敗則以layerHint或NodeId作為圖層名
+    const fallback = def.layerHint || String(def.nodeId);
     fetchCapabilities(url).then((names) => {
-      start(names && names.length ? names.join(',') : String(def.nodeId));
-    }).catch(() => start(String(def.nodeId)));
+      if (!names || !names.length) return start(fallback);
+      if (!def.layerHint) return start(names.join(','));
+      const hint = def.layerHint.toLowerCase();
+      const exact = names.find((n) => n.toLowerCase() === hint);
+      const partial = names.filter((n) => n.toLowerCase().indexOf(hint) >= 0);
+      start(exact || (partial.length ? partial[0] : names[0]));
+    }).catch(() => start(fallback));
   }
 
   async function fetchCapabilities(url) {
@@ -793,6 +807,16 @@
       if (layersParam) def.layers = layersParam;
       registerCustom(def);
     });
+    $('#custom-xyz-add').addEventListener('click', () => {
+      const url = $('#custom-xyz-url').value.trim();
+      if (!/\{z\}/.test(url) || !/\{x\}/.test(url) || !/\{y\}/.test(url)) { alert('請貼上含 {z}、{x}、{y} 的圖磚樣板網址。'); return; }
+      const name = $('#custom-xyz-name').value.trim() || '自訂圖磚';
+      registerCustom({
+        id: `custom_${++state.customCount}`, group: 'custom', type: 'xyz', url, name,
+        desc: '使用者加入的圖磚圖層（XYZ／WMTS樣板）。', source: new URL(url.replace(/\{[^}]+\}/g, '0')).hostname,
+        license: '依來源', color: '#8d6e63', opacity: 0.85,
+      });
+    });
     $('#custom-geojson-add').addEventListener('click', async () => {
       const url = $('#custom-geojson-url').value.trim();
       if (!url) return;
@@ -1036,6 +1060,7 @@
     setupCsv();
     setupCustom();
     window.DDGoogle.init();
+    window.DDSwipe.init({ state, notify });
     // 填入或移除金鑰時重建底圖選單
     window.DDGoogle.onChange(() => { setBaseLayers(); if (window.DDSplit) window.DDSplit.refreshBases(); });
     setupSearch();
