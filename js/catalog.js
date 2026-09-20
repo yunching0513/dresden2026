@@ -34,8 +34,8 @@
     /* ---------- 行政區 ---------- */
     {
       id: 'stadtteile', group: 'admin', type: 'bundled',
-      name: 'Stadtteile統計分區（61區）', de: 'Stadtteile',
-      desc: '市統計處的Stadtteil界線（OSM轉繪，缺Langebrück/Schönborn、Cossebaude、Gompitz/Altfranken三個Ortschaft）。點擊分區可看面積、所屬Stadtbezirk與各圖層設施數。',
+      name: 'Stadtteile統計分區（64區）', de: 'Stadtteile',
+      desc: '市統計處的Stadtteil界線（OSM轉繪，全部64區）。點擊分區可看面積、所屬Stadtbezirk與各圖層設施數。',
       source: 'OpenStreetMap（offenesdresden/GeoData）', license: 'ODbL', default: true, color: '#1f4e79',
     },
     {
@@ -340,7 +340,7 @@
     { k: '人口密度', v: '約1,740人/km²', note: '約為臺北市（約8,900人/km²）的五分之一：兩市面積相近，但人口規模與密度差距懸殊。' },
     { k: '人口', v: '571,510人', note: '主要居所人口，2025年12月31日戶籍登記；2010年代持續成長後近年微幅下降。' },
     { k: '行政分區', v: '10 Stadtbezirke＋9 Ortschaften', note: '1990年代併入的周邊鄉鎮保留Ortschaft地位與地方議會。' },
-    { k: '統計分區', v: '64 Stadtteile', note: '本圖層附帶其中61區（OSM轉繪），再細分為Statistische Bezirke。' },
+    { k: '統計分區', v: '64 Stadtteile', note: '本圖層為OSM轉繪的全部64區，再細分為Statistische Bezirke。' },
     { k: '海拔', v: '101–383 m', note: '易北河谷地約110 m，兩側為Elbhänge坡地與Dresdner Heide台地。' },
     { k: '易北河', v: '流經市域約30 km', note: '2002年（940 cm）與2013年（876 cm）洪水後，洪氾管理為規劃核心議題。' },
     { k: 'Flächennutzungsplan', v: '2020年10月22日生效', note: '2020-01-31版本，取代1998年FNP；下一級為Bebauungspläne。' },

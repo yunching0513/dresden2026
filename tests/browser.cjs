@@ -90,10 +90,14 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:8000';
   assert.equal(outline.paths.length,2);
   assert.equal(outline.squares.length,2);
   // 虛線方框＝官方統計面積（328.8 / 271.7997 km²）
-  assert.ok(Math.abs(outline.squares[0]/outline.squares[1]-328.8/271.7997)<0.005,'官方面積方框等面積');
-  // 實心輪廓＝手上的界線資料（283.56 / 270.32 km²，以Lambert方位等積投影量得）
-  assert.ok(Math.abs(outline.paths[0]/outline.paths[1]-283.56/270.32)<0.005,'界線輪廓等面積');
-  assert.match(outline.note,/61個統計分區（官方64個）/);
+  const officialRatio=328.8/271.7997;
+  assert.ok(Math.abs(outline.squares[0]/outline.squares[1]-officialRatio)<0.005,'官方面積方框等面積');
+  // 界線補齊後，實心輪廓的螢幕面積比必須跟官方面積比一致（等積投影下兩者應重合）。
+  const drawnRatio=outline.paths[0]/outline.paths[1];
+  assert.ok(Math.abs(drawnRatio-officialRatio)<0.03,`界線輪廓等面積：量到${drawnRatio.toFixed(4)}，官方${officialRatio.toFixed(4)}`);
+  // 界線涵蓋率足夠時不該再出現缺漏提示。
+  assert.doesNotMatch(outline.note,/界線目前只有/);
+  assert.match(outline.note,/虛線方框是該市官方統計面積/);
   await browser.close();
   console.log('PASS: real 3D data, controls, 2D/3D, share restore, picking, mobile, failure/retry, equal-area compare outline; no JS errors.');
 })().catch(error=>{console.error(error);process.exit(1);});

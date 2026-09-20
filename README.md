@@ -152,7 +152,7 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 
 ## 已知限制
 
-- 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Altfranken/Gompitz三個統計Stadtteil（官方共64個）；界線涵蓋283.6 km²，比官方市域面積328.8 km²少45.2 km²（約14%），集中在西邊與北邊。因此比較頁的德勒斯登輪廓會小於虛線的官方面積方框，落在這三區內的OSM物件也不會計入指標，「每km²」的德勒斯登數值會系統性偏低約14%。補上這三區的界線即可解決，見下方「補齊Stadtteile界線」。
+- 附帶的Stadtteile為OSM轉繪版本，官方64區全部都在。其中Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Altfranken/Gompitz三區是後來以 `scripts/fetch-dresden-stadtteile.py` 從Overpass補進來的，`area_km2` 為幾何量測值（標記 `area_source: "geometry"`），其餘61區沿用Stadtteilkatalog公告值。界線合計327.4 km²，比官方市域面積328.8 km²少1.4 km²（0.4%），差異來自OSM界線的概化程度。
 - 臺北里界為OSM轉繪的1982年版編組，共449里，與現行編組（含2018年調整）有出入，僅供概覽；行政區界線亦為OSM轉繪，但面積欄位採民政局公告值（全市271.7997 km²）。
 - 臺北市的土地使用分區、都市更新地區等法定計畫目前沒有穩定的公開OGC服務，目錄中以連結導向都發局查詢系統；NLSC圖磚的圖層代碼若日後調整，需更新 `js/catalog-taipei.js`。
 - 雙城比較的分母：德勒斯登為主要居所登記人口（2025年12月31日，571,510人），臺北市為戶籍人口（2026年7月，約242萬人），統計基準不同；臺北日間活動人口另含大量新北通勤者，「每10萬人」會低估實際使用強度。
@@ -165,7 +165,7 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 
 ## 補齊Stadtteile界線
 
-`scripts/fetch-dresden-stadtteile.py` 會從Overpass抓缺漏的三個統計Stadtteil（Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Altfranken/Gompitz），把各自底下的OSM Ortsteil界線合併成一個Stadtteil，寫回 `data/stadtteile.geojson`、`data/stadtteile.js`，並把 `js/cities.js` 的 `unitsBundled` 更新成64。
+`data/stadtteile.geojson` 最初只有61區，缺Dresden西側與北側的三個統計Stadtteil。`scripts/fetch-dresden-stadtteile.py` 已經把它們補上（見上方「已知限制」），腳本保留下來供日後重建或更新：它會從Overpass抓Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Altfranken/Gompitz底下的七個OSM Ortsteil關聯，各自合併成一個Stadtteil，寫回 `data/stadtteile.geojson`、`data/stadtteile.js`，並把 `js/cities.js` 的 `unitsBundled` 更新成64。
 
 ```bash
 pip install -r scripts/requirements.txt
@@ -173,16 +173,16 @@ python3 scripts/fetch-dresden-stadtteile.py --dry-run    # 只查、只印，不
 python3 scripts/fetch-dresden-stadtteile.py             # 實際寫回
 ```
 
-腳本會擋掉明顯抓錯的情形：每個Stadtteil的面積須落在4–60 km²，合併後的全市面積與官方328.8 km²相差超過8 km²就中止不寫檔。若某個Ortsteil名稱在Dresden範圍內比對到不只一個OSM關聯，會列出候選並要求以 `--relation 名稱=關聯ID` 指定。
+Overpass是免費的公共服務，回504或直接斷線都很常見。腳本會輪流試四個端點、共四輪（間隔8、16、32秒），並把抓到的關聯存進 `scripts/.overpass-cache/`，所以中途失敗後重跑只會補抓還沒拿到的部分；要強制重抓加 `--no-cache`。查詢語法錯誤（HTTP 400）則不重試，直接把伺服器的說明印出來。
+
+寫檔前的守門：每個Stadtteil的面積須落在4–60 km²，合併後的全市面積與官方328.8 km²相差超過8 km²就中止不寫檔。若某個Ortsteil名稱在Dresden範圍內比對到不只一個OSM關聯，會列出候選並要求以 `--relation 名稱=關聯ID` 指定。
 
 兩個欄位需要人工確認：
 
 - `code`：依Ortsamtsbereich編號規則推定為 `36`、`90`、`99`，CSV以代碼對應分區前請對照[Stadtteilkatalog](https://www.dresden.de/stadtteilkatalog)；以名稱對應則不受影響。
 - `area_km2`：預設是以EPSG:3035等積投影量測的幾何面積，並標記 `area_source: "geometry"`；要改用官方公告值請加 `--area 36=14.4` 之類的參數，標記會變成 `Stadtteilkatalog`。
 
-補齊之後，比較頁的涵蓋率提示會自動消失，輪廓與官方面積方框吻合，指標也會把這三區的OSM物件計入。
-
-`tests/stadtteile.py` 以合成的Overpass回應測這支腳本（縫合被拆段的way、扣掉內環、融合相鄰Ortsteil、面積守門），不需要網路。
+`tests/stadtteile.py` 以合成的Overpass回應測這支腳本（縫合被拆段的way、扣掉內環、融合相鄰Ortsteil、面積守門、端點失敗後的重試），不需要網路。
 
 ## 造訪人次
 

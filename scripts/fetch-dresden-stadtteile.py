@@ -26,17 +26,23 @@ Stadtteil，再寫回`data/stadtteile.geojson`與`data/stadtteile.js`，並把
     # 用事先存好的Overpass回應（測試或離線）：
     python3 scripts/fetch-dresden-stadtteile.py --input overpass.json
 
+Overpass是免費的公共服務，回504或直接斷線都很常見。腳本會輪流試四個端點、共四輪
+（間隔8、16、32秒），並把抓到的關聯存進scripts/.overpass-cache/，所以中途失敗後
+重跑只會補抓還沒拿到的部分。要強制重抓加 --no-cache。
+
 注意：Stadtteil代碼（code）沿用Ortsamtsbereich編號規則推定，CSV以代碼對應分區前
 請對照Kommunale Statistikstelle的Stadtteilkatalog確認；面積預設為幾何量測值
 （EPSG:3035等積投影），與官方公告值會有小數點後的差異，故另記
 `area_source`欄位區別。
 """
 import argparse
+import http.client
 import json
 import math
 import pathlib
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -54,7 +60,12 @@ CITIES = ROOT / 'js' / 'cities.js'
 ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.osm.ch/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter',
 ]
+CACHE = ROOT / 'scripts' / '.overpass-cache'   # 抓到的關聯存這裡，重跑時不必再問一次
+ROUNDS = 4                                     # 每輪把所有端點試一遍，輪與輪之間等待
+BACKOFF = 8                                    # 第n輪之前等 BACKOFF * 2**(n-1) 秒
 # Dresden市域的外接矩形，用來把同名的其他村落排除在候選之外。
 BBOX = (50.95, 13.50, 51.25, 14.05)
 OFFICIAL_CITY_AREA_KM2 = 328.8       # Landeshauptstadt Dresden公告市域面積
@@ -99,22 +110,50 @@ def log(*args):
     print(*args, file=sys.stderr)
 
 
-def overpass(query, endpoints):
+# Overpass是免費的公共服務，忙碌時常見504、429，或直接把連線關掉
+# （RemoteDisconnected不是URLError的子類，所以這裡一律接OSError與HTTPException）。
+RETRYABLE = (OSError, http.client.HTTPException, json.JSONDecodeError)
+
+
+def request_once(endpoint, query):
+    request = urllib.request.Request(
+        endpoint,
+        data=urllib.parse.urlencode({'data': query}).encode(),
+        headers={'User-Agent': 'dresden2026 stadtteile fetcher (+https://github.com/yunching0513/dresden2026)'},
+    )
+    with urllib.request.urlopen(request, timeout=300) as response:
+        payload = json.loads(response.read().decode())
+    remark = payload.get('remark')
+    if remark:                                   # Overpass把逾時、記憶體不足放在remark裡，HTTP仍是200
+        raise RuntimeError(f'Overpass remark: {remark}')
+    return payload
+
+
+def overpass(query, endpoints, rounds=ROUNDS):
     last = None
-    for endpoint in endpoints:
-        log(f'  → {endpoint}')
-        request = urllib.request.Request(
-            endpoint,
-            data=urllib.parse.urlencode({'data': query}).encode(),
-            headers={'User-Agent': 'dresden2026 stadtteile fetcher (+https://github.com/yunching0513/dresden2026)'},
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=300) as response:
-                return json.loads(response.read().decode())
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
-            log(f'    失敗：{error}')
-            last = error
-    raise SystemExit(f'Overpass都連不上：{last}')
+    for attempt in range(rounds):
+        for endpoint in endpoints:
+            log(f'  → {endpoint}')
+            try:
+                return request_once(endpoint, query)
+            except urllib.error.HTTPError as error:
+                if error.code == 400:            # 查詢語法錯誤，重試沒有意義
+                    detail = error.read().decode(errors='replace') if error.fp else str(error)
+                    raise SystemExit(f'Overpass拒絕這個查詢（400）：\n{detail[:800]}')
+                log(f'    失敗：HTTP {error.code} {error.reason}')
+                last = error
+            except RETRYABLE as error:
+                log(f'    失敗：{type(error).__name__}: {error}')
+                last = error
+            except RuntimeError as error:
+                log(f'    失敗：{error}')
+                last = error
+        if attempt + 1 < rounds:
+            wait = BACKOFF * (2 ** attempt)
+            log(f'  所有端點都沒成功，等{wait}秒後重試（第{attempt + 2}／{rounds}輪）')
+            time.sleep(wait)
+    raise SystemExit(f'Overpass連續{rounds}輪都失敗，最後一個錯誤：{last}\n'
+                     '稍後再跑一次即可，已抓到的關聯有快取不會重抓。')
 
 
 def discovery_query(names):
@@ -127,8 +166,9 @@ def discovery_query(names):
     )
 
 
-def geometry_query(ids):
-    return '[out:json][timeout:300];rel(id:' + ','.join(str(i) for i in ids) + ');out geom;'
+def geometry_query(relation_id):
+    # 一次只要一個關聯：請求小、比較不會踩到Overpass的逾時，失敗也只需重抓那一個。
+    return f'[out:json][timeout:180];rel(id:{relation_id});out geom;'
 
 
 def pick_relations(elements, names, overrides):
@@ -189,22 +229,52 @@ def round_geometry(geom):
     return transform(snap, geom)
 
 
+def cached_json(path, produce):
+    """抓過的東西存下來：Overpass不穩，重跑時不該把成功的部分再問一次。"""
+    if path and path.exists():
+        log(f'  （使用快取 {path.name}）')
+        return json.loads(path.read_text(encoding='utf-8'))
+    value = produce()
+    if path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(value, ensure_ascii=False), encoding='utf-8')
+    return value
+
+
 def load_overpass_elements(args, names):
     if args.input:
         data = json.loads(pathlib.Path(args.input).read_text(encoding='utf-8'))
         log(f'使用本機檔案 {args.input}（{len(data.get("elements", []))} 個元素）')
         return data['elements']
     endpoints = [args.endpoint] if args.endpoint else ENDPOINTS
+    cache = None if args.no_cache else pathlib.Path(args.cache)
     overrides = dict(args.relation)
-    missing = [n for n in names if n not in overrides]
-    if missing:
-        log('查詢候選關聯：')
-        found = overpass(discovery_query(missing), endpoints)['elements']
-    else:
-        found = []
-    chosen = pick_relations(found, names, overrides)
+
+    def discover():
+        missing = [n for n in names if n not in overrides]
+        found = overpass(discovery_query(missing), endpoints)['elements'] if missing else []
+        return pick_relations(found, names, overrides)
+
+    log('比對Ortsteil與OSM關聯：')
+    chosen = cached_json(cache / 'relations.json' if cache else None, discover)
+    log('  ' + '、'.join(f'{name}=relation/{rid}' for name, rid in chosen.items()))
+
     log('抓取界線幾何：')
-    return overpass(geometry_query(sorted(set(chosen.values()))), endpoints)['elements']
+    elements = []
+    for name in names:
+        relation_id = chosen[name]
+        log(f'  {name}（relation/{relation_id}）')
+        elements.append(cached_json(
+            cache / f'relation-{relation_id}.json' if cache else None,
+            lambda rid=relation_id: pick_relation_element(overpass(geometry_query(rid), endpoints), rid)))
+    return elements
+
+
+def pick_relation_element(payload, relation_id):
+    for element in payload.get('elements', []):
+        if element.get('type') == 'relation' and element.get('id') == relation_id:
+            return element
+    raise SystemExit(f'relation/{relation_id} 沒有回傳內容，請確認這個ID是否正確')
 
 
 def build_features(elements, areas):
@@ -302,6 +372,8 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='只查詢與檢查，不寫檔')
     parser.add_argument('--endpoint', help='指定單一Overpass端點')
     parser.add_argument('--input', help='改用事先存好的Overpass回應（JSON檔）')
+    parser.add_argument('--cache', default=str(CACHE), help=f'抓到的關聯存放目錄（預設 {CACHE.relative_to(ROOT)}）')
+    parser.add_argument('--no-cache', action='store_true', help='不使用快取，每次都重新向Overpass查詢')
     parser.add_argument('--relation', type=relation_pair, action='append', default=[],
                         metavar='名稱=ID', help='手動指定某個Ortsteil的OSM關聯')
     parser.add_argument('--area', type=area_pair, action='append', default=[],

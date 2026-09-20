@@ -54,7 +54,9 @@ run = subprocess.run([sys.executable, str(SCRIPT), '--input', path, '--dry-run',
                      capture_output=True, text=True)
 report = run.stdout + run.stderr
 assert run.returncode == 0, report
-assert 'Stadtteil數：61 → 64' in report, report
+# 三個Stadtteil若已在資料裡就是覆蓋，否則是新增；兩種情形合併後都該是64個。
+shipped = len(json.loads((ROOT / 'data' / 'stadtteile.geojson').read_text(encoding='utf-8'))['features'])
+assert f'Stadtteil數：{shipped} → 64' in report, report
 assert 'Langebrück/Schönborn（36）14.4 km²（Stadtteilkatalog' in report, report      # 官方面積覆蓋量測值
 assert 'Altfranken/Gompitz（99）6.3 km²（geometry' in report, report                 # 未給官方值時退回幾何量測
 assert '幾何量測 7.969' in report or 'Mobschatz: relation/9000003 7.969' in report, report  # 內環已扣除
@@ -75,4 +77,72 @@ guard = subprocess.run([sys.executable, str(SCRIPT), '--input', broken_path, '--
 assert guard.returncode != 0, guard.stdout + guard.stderr
 assert '超出合理範圍' in guard.stdout + guard.stderr, guard.stdout + guard.stderr
 
-print('PASS: ways stitched, inner ring subtracted, Ortsteile dissolved, official areas honoured, guards abort.')
+# Overpass忙碌時會回504、429，或不回應答直接把連線關掉（RemoteDisconnected不是
+# URLError的子類）。這些都必須退到下一個端點並重試，而不是讓整趟執行中斷。
+import http.client, importlib.util, io, urllib.error, urllib.request
+
+spec = importlib.util.spec_from_file_location('stadtteile_fetcher', SCRIPT)
+fetcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fetcher)
+
+ENDPOINTS = ['https://a.example/api', 'https://b.example/api', 'https://c.example/api']
+
+
+class Reply:
+    def __init__(self, payload): self.payload = payload
+    def read(self): return json.dumps(self.payload).encode()
+    def __enter__(self): return self
+    def __exit__(self, *exc): return False
+
+
+def replay(script):
+    calls = []
+    def fake(request, timeout=None):
+        calls.append(request.full_url)
+        outcome = script[min(len(calls) - 1, len(script) - 1)]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return Reply(outcome)
+    return calls, fake
+
+
+original_urlopen, original_sleep = urllib.request.urlopen, fetcher.time.sleep
+fetcher.time.sleep = lambda seconds: None
+try:
+    good = {'elements': [{'type': 'relation', 'id': 7}]}
+    calls, urllib.request.urlopen = replay([
+        http.client.RemoteDisconnected('closed'),                                  # 連線被關掉
+        urllib.error.HTTPError('https://b.example/api', 504, 'Gateway Timeout', {}, None),
+        good,
+    ])
+    assert fetcher.overpass('q', ENDPOINTS)['elements'][0]['id'] == 7
+    assert len(calls) == 3, calls
+
+    # HTTP 200但帶remark（伺服器端逾時）也要當失敗處理。
+    calls, urllib.request.urlopen = replay([{'elements': [], 'remark': 'runtime error: Query timed out'}, good])
+    assert fetcher.overpass('q', ENDPOINTS)['elements'][0]['id'] == 7
+    assert len(calls) == 2, calls
+
+    # 所有端點、所有輪次都失敗時乾淨地收場，不是丟traceback。
+    calls, urllib.request.urlopen = replay([http.client.RemoteDisconnected('closed')])
+    try:
+        fetcher.overpass('q', ENDPOINTS, rounds=2)
+        raise AssertionError('應該要中止')
+    except SystemExit as stop:
+        assert 'Overpass連續2輪都失敗' in str(stop), stop
+    assert len(calls) == len(ENDPOINTS) * 2, calls
+
+    # 查詢語法錯誤（400）不重試，直接把伺服器的說明印出來。
+    body = io.BytesIO(b'line 3: parse error')
+    calls, urllib.request.urlopen = replay([urllib.error.HTTPError('https://a.example/api', 400, 'Bad Request', {}, body)])
+    try:
+        fetcher.overpass('q', ENDPOINTS)
+        raise AssertionError('應該要中止')
+    except SystemExit as stop:
+        assert 'parse error' in str(stop), stop
+    assert len(calls) == 1, calls
+finally:
+    urllib.request.urlopen, fetcher.time.sleep = original_urlopen, original_sleep
+
+print('PASS: ways stitched, inner ring subtracted, Ortsteile dissolved, official areas honoured, '
+      'guards abort, Overpass failures retried across endpoints.')
