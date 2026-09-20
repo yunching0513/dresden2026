@@ -4,6 +4,12 @@
 - **Stadtteile Dresden** (`data/stadtteile.geojson`, `data/stadtteile.js`): derived from OpenStreetMap via
   https://github.com/offenesdresden/GeoData (relation boundaries, source tag "Kommunale Statistikstelle Dresden").
   © OpenStreetMap contributors, ODbL 1.0. Properties `code`, `bezirk`, `area_km2` were added by this project.
+  The three statistical Stadtteile missing from that export (Langebrück/Schönborn,
+  Cossebaude/Mobschatz/Oberwartha, Altfranken/Gompitz) can be added with
+  `scripts/fetch-dresden-stadtteile.py`, which fetches the corresponding Ortsteil relations
+  straight from the Overpass API and dissolves them: same source, same ODbL 1.0 terms.
+  Features added that way carry `area_source` so measured areas are not mistaken for the
+  city's published figures.
 - **Landeshauptstadt Dresden open data** is loaded at runtime from kommisdd.dresden.de under
   Datenlizenz Deutschland – Namensnennung – Version 2.0 (dl-de/by-2-0). Attribution: "Landeshauptstadt Dresden, opendata.dresden.de".
 - **OpenStreetMap data** loaded at runtime via Overpass API: © OpenStreetMap contributors, ODbL 1.0.

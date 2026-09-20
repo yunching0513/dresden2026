@@ -152,7 +152,7 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 
 ## 已知限制
 
-- 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken三個統計Stadtteil（官方共64個）；界線涵蓋283.6 km²，比官方市域面積328.8 km²少45.2 km²（約14%），集中在西邊與北邊。因此比較頁的德勒斯登輪廓會小於虛線的官方面積方框，落在這三區內的OSM物件也不會計入指標，「每km²」的德勒斯登數值會系統性偏低約14%。補上這三區的界線即可解決。
+- 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Altfranken/Gompitz三個統計Stadtteil（官方共64個）；界線涵蓋283.6 km²，比官方市域面積328.8 km²少45.2 km²（約14%），集中在西邊與北邊。因此比較頁的德勒斯登輪廓會小於虛線的官方面積方框，落在這三區內的OSM物件也不會計入指標，「每km²」的德勒斯登數值會系統性偏低約14%。補上這三區的界線即可解決，見下方「補齊Stadtteile界線」。
 - 臺北里界為OSM轉繪的1982年版編組，共449里，與現行編組（含2018年調整）有出入，僅供概覽；行政區界線亦為OSM轉繪，但面積欄位採民政局公告值（全市271.7997 km²）。
 - 臺北市的土地使用分區、都市更新地區等法定計畫目前沒有穩定的公開OGC服務，目錄中以連結導向都發局查詢系統；NLSC圖磚的圖層代碼若日後調整，需更新 `js/catalog-taipei.js`。
 - 雙城比較的分母：德勒斯登為主要居所登記人口（2025年12月31日，571,510人），臺北市為戶籍人口（2026年7月，約242萬人），統計基準不同；臺北日間活動人口另含大量新北通勤者，「每10萬人」會低估實際使用強度。
@@ -162,6 +162,27 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 - GetFeatureInfo若受跨域限制，會提供「在新分頁開啟查詢結果」連結。
 - 設施數以OSM物件中心點落入分區計算，屬概覽性質；正式統計請以Kommunale Statistikstelle的Stadtteilkatalog為準。
 - Overpass為公共服務，大型圖層（森林、住宅用地）需數秒，且有速率限制；結果會在同一頁面內快取。
+
+## 補齊Stadtteile界線
+
+`scripts/fetch-dresden-stadtteile.py` 會從Overpass抓缺漏的三個統計Stadtteil（Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Altfranken/Gompitz），把各自底下的OSM Ortsteil界線合併成一個Stadtteil，寫回 `data/stadtteile.geojson`、`data/stadtteile.js`，並把 `js/cities.js` 的 `unitsBundled` 更新成64。
+
+```bash
+pip install -r scripts/requirements.txt
+python3 scripts/fetch-dresden-stadtteile.py --dry-run    # 只查、只印，不寫檔
+python3 scripts/fetch-dresden-stadtteile.py             # 實際寫回
+```
+
+腳本會擋掉明顯抓錯的情形：每個Stadtteil的面積須落在4–60 km²，合併後的全市面積與官方328.8 km²相差超過8 km²就中止不寫檔。若某個Ortsteil名稱在Dresden範圍內比對到不只一個OSM關聯，會列出候選並要求以 `--relation 名稱=關聯ID` 指定。
+
+兩個欄位需要人工確認：
+
+- `code`：依Ortsamtsbereich編號規則推定為 `36`、`90`、`99`，CSV以代碼對應分區前請對照[Stadtteilkatalog](https://www.dresden.de/stadtteilkatalog)；以名稱對應則不受影響。
+- `area_km2`：預設是以EPSG:3035等積投影量測的幾何面積，並標記 `area_source: "geometry"`；要改用官方公告值請加 `--area 36=14.4` 之類的參數，標記會變成 `Stadtteilkatalog`。
+
+補齊之後，比較頁的涵蓋率提示會自動消失，輪廓與官方面積方框吻合，指標也會把這三區的OSM物件計入。
+
+`tests/stadtteile.py` 以合成的Overpass回應測這支腳本（縫合被拆段的way、扣掉內環、融合相鄰Ortsteil、面積守門），不需要網路。
 
 ## 造訪人次
 
@@ -210,6 +231,10 @@ js/annotate.js                註記工具（Pin／線／範圍、編輯、local
 js/buildings3d.js             3D建築量體（MapLibre GL；GeoSN LoD1 或 OSM即時查詢）
 js/geo.js                     point-in-polygon、面積、分位數等幾何工具
 data/stadtteile.geojson       Dresden Stadtteile界線（.js為同內容的全域變數版）
+scripts/build-buildings.py    從GeoSN LoD1產生3D建築量體資料
+scripts/fetch-dresden-stadtteile.py  從OSM補齊缺漏的統計Stadtteil界線
+tests/browser.cjs             Playwright端到端測試（3D、分享還原、等面積輪廓）
+tests/stadtteile.py           以合成Overpass回應驗證界線補齊腳本
 data/taipei_districts.geojson 臺北市12行政區（.js為同內容的全域變數版）
 data/taipei_villages.geojson  臺北市449里（開啟圖層時才抓取）
 vendor/leaflet/               Leaflet 1.9.4（BSD-2-Clause）
