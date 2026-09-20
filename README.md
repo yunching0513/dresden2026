@@ -6,7 +6,7 @@
 
 兩市面積相近（328.8 km²對271.8 km²），人口卻相差四倍以上，是觀察密度、運具與生活機能配置差異的現成對照組。
 
-純靜態網頁，不需後端、不需建置：開啟 `index.html`（建議用本機HTTP伺服器）或部署到GitHub Pages即可。
+純靜態網頁，不需後端、不需建置：開啟 `index.html`（建議用本機HTTP伺服器）或丟到任何靜態主機即可。
 
 ## 切換城市與雙城比較
 
@@ -16,7 +16,7 @@
 
 0. **並列地圖**：左右同時開啟兩市地圖，並鎖定相同的地面比例尺。
 
-1. **同尺度輪廓**：兩市界線以相同的公里／像素比例並排，規模差異一眼可見。
+1. **等面積輪廓**：兩市界線以相同的像素／公里比例並排，規模差異一眼可見。投影用Lambert方位等積投影（各市以自身界線形心為切點），螢幕上的面積比等於真實面積比；虛線方框是官方統計面積換算的等面積正方形，用來對照界線資料的涵蓋程度。
 2. **基本數字**：面積、人口、密度、統計單元與海拔範圍，附倍數欄。
 3. **OSM可比指標**：14項指標（學校、幼兒園、超市、便利商店、藥局、醫院、圖書館、宗教設施、遊戲場、軌道站點、公車站、共享單車站、公園綠地面積、自行車道長度），兩市跑**完全相同**的Overpass查詢，再以各市行政界線做點在多邊形內判斷，因此不會混入新北市或Radebeul等鄰接地區。可切換「每10萬人／每km²／絕對數量」，並匯出CSV。
 
@@ -152,7 +152,7 @@ Google Maps的圖磚**不能**直接接進Leaflet或MapLibre：Google Maps Platf
 
 ## 已知限制
 
-- 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken三個Ortschaft；面積為近似值。
+- 附帶的Stadtteile為OSM轉繪版本，共61區，缺Langebrück/Schönborn、Cossebaude/Mobschatz/Oberwartha、Gompitz/Altfranken三個統計Stadtteil（官方共64個）；界線涵蓋283.6 km²，比官方市域面積328.8 km²少45.2 km²（約14%），集中在西邊與北邊。因此比較頁的德勒斯登輪廓會小於虛線的官方面積方框，落在這三區內的OSM物件也不會計入指標，「每km²」的德勒斯登數值會系統性偏低約14%。補上這三區的界線即可解決。
 - 臺北里界為OSM轉繪的1982年版編組，共449里，與現行編組（含2018年調整）有出入，僅供概覽；行政區界線亦為OSM轉繪，但面積欄位採民政局公告值（全市271.7997 km²）。
 - 臺北市的土地使用分區、都市更新地區等法定計畫目前沒有穩定的公開OGC服務，目錄中以連結導向都發局查詢系統；NLSC圖磚的圖層代碼若日後調整，需更新 `js/catalog-taipei.js`。
 - 雙城比較的分母：德勒斯登為主要居所登記人口（2025年12月31日，571,510人），臺北市為戶籍人口（2026年7月，約242萬人），統計基準不同；臺北日間活動人口另含大量新北通勤者，「每10萬人」會低估實際使用強度。
@@ -187,14 +187,11 @@ python3 -m http.server 8000
 
 前端免建置；Leaflet 1.9.4 與 MapLibre GL JS 5.6.1 已放在 `vendor/`，3D 引擎於開啟時才載入。建築資料隨站提供，底圖與 WMS 需網路。
 
-## 部署到GitHub Pages
+## 部署
 
-`.github/workflows/pages.yml` 會在推送到 `main`、`claude/taipei-dresden-compare` 或 `claude/dresden-opendata-layer-309sn8` 時自動部署整個repo為靜態站。Source需在repo Settings → Pages設為「GitHub Actions」。
+線上版由 **Vercel** 部署，推送到 `claude/taipei-dresden-compare` 即自動更新。設定都在 `vercel.json`：不做建置，輸出目錄就是repo根目錄，`data/buildings/` 與 `vendor/` 給長快取；`.vercelignore` 把 `scripts/`、`tests/` 等排除在部署之外（`scripts/requirements.txt` 會讓Vercel誤判為Python專案）。
 
-注意：`github-pages` 環境預設只允許**預設分支**部署。若要讓 `claude/taipei-dresden-compare` 上線，需二擇一：
-
-- Settings → General → Default branch 改為 `claude/taipei-dresden-compare`；或
-- Settings → Environments → `github-pages` → Deployment branches 加入該分支。
+也可以用任何靜態主機（GitHub Pages、Netlify、Cloudflare Pages、`python3 -m http.server`）：整個repo直接當靜態站送出即可，沒有建置步驟。若改用GitHub Pages，注意 `github-pages` 環境預設只允許**預設分支**部署。
 
 ## 專案結構
 

@@ -2,7 +2,10 @@ const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const base = process.env.TEST_URL || 'http://127.0.0.1:8000';
 (async () => {
-  const browser = await chromium.launch({ headless:true, channel:process.env.CHROME_CHANNEL || 'chrome' });
+  // CHROME_PATH 指向自備的Chromium時不指定channel，供沒有安裝Chrome的環境（CI、容器）使用。
+  const executablePath = process.env.CHROME_PATH || undefined;
+  const channel = process.env.CHROME_CHANNEL || (executablePath ? undefined : 'chrome');
+  const browser = await chromium.launch({ headless:true, channel, executablePath });
   const page = await browser.newPage({viewport:{width:1440,height:960}});
   const errors=[]; page.on('pageerror', e=>errors.push(e.message));
   await page.goto(base, {waitUntil:'domcontentloaded'});
@@ -66,6 +69,31 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:8000';
   await failure.unroute('**/data/buildings/*.geojson');
   await failure.locator('#model-retry').click();
   await failure.waitForFunction(()=>document.querySelector('#buildings-status').textContent.startsWith('已載入'));
+  // 比較頁的等面積輪廓：同一比例尺下，螢幕面積比必須等於真實面積比。
+  const compare = await browser.newPage({viewport:{width:1440,height:960}});
+  await compare.goto(base,{waitUntil:'domcontentloaded'});
+  await compare.locator('[data-tab="compare"]').click();
+  await compare.waitForFunction(()=>document.querySelector('#compare-outline svg'));
+  const outline = await compare.evaluate(()=>{
+    const svg=document.querySelector('#compare-outline svg');
+    const area=(d)=>d.split('M').filter(Boolean).reduce((sum,seg)=>{
+      const pts=seg.replace(/Z\s*$/,'').split('L').map(s=>s.split(',').map(Number));
+      let a=0; for(let i=0;i<pts.length-1;i++) a+=pts[i][0]*pts[i+1][1]-pts[i+1][0]*pts[i][1];
+      return sum+Math.abs(a/2);
+    },0);
+    return {
+      paths:[...svg.querySelectorAll('path')].map(n=>area(n.getAttribute('d'))),
+      squares:[...svg.querySelectorAll('rect')].map(n=>+n.getAttribute('width')*+n.getAttribute('height')),
+      note:document.querySelector('#compare-outline-note').textContent,
+    };
+  });
+  assert.equal(outline.paths.length,2);
+  assert.equal(outline.squares.length,2);
+  // 虛線方框＝官方統計面積（328.8 / 271.7997 km²）
+  assert.ok(Math.abs(outline.squares[0]/outline.squares[1]-328.8/271.7997)<0.005,'官方面積方框等面積');
+  // 實心輪廓＝手上的界線資料（283.56 / 270.32 km²，以Lambert方位等積投影量得）
+  assert.ok(Math.abs(outline.paths[0]/outline.paths[1]-283.56/270.32)<0.005,'界線輪廓等面積');
+  assert.match(outline.note,/61個統計分區（官方64個）/);
   await browser.close();
-  console.log('PASS: real 3D data, controls, 2D/3D, share restore, picking, mobile, failure/retry; no JS errors.');
+  console.log('PASS: real 3D data, controls, 2D/3D, share restore, picking, mobile, failure/retry, equal-area compare outline; no JS errors.');
 })().catch(error=>{console.error(error);process.exit(1);});

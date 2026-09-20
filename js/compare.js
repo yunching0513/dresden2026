@@ -158,47 +158,94 @@
     box.querySelectorAll('.ccard').forEach((n) => n.addEventListener('click', () => app.switchCity(n.dataset.city)));
   }
 
-  /* 同尺度輪廓：兩市界線以相同的公里／像素比例並排，直接看出規模差異。 */
-  function renderOutline() {
-    const H = 150, pad = 8, gap = 22;
-    const shapes = ORDER.map((id) => {
-      const fc = CITIES[id].boundaries();
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      const lat0 = CITIES[id].center[0];
-      const k = Math.cos(lat0 * Math.PI / 180);
-      const rings = [];
-      fc.features.forEach((f) => {
-        const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-        polys.forEach((poly) => {
-          const pts = poly[0].map(([lng, lat]) => {
-            const x = lng * 111.32 * k, y = -lat * 110.57;   // 公里，等距近似
-            if (x < minX) minX = x; if (x > maxX) maxX = x;
-            if (y < minY) minY = y; if (y > maxY) maxY = y;
-            return [x, y];
-          });
-          rings.push(pts);
-        });
-      });
-      return { id, rings, w: maxX - minX, h: maxY - minY, minX, minY };
+  /* 等面積投影：Lambert方位等積投影（球體，各市以自身界線形心為切點）。
+   * 等積投影下，共用同一個像素／公里比例的兩個輪廓，螢幕面積比就等於真實面積比，
+   * 不受緯度影響。先前用的等距近似（lng×cos(lat0)）會讓兩市面積各少算約0.42%，
+   * 比值雖幾乎不變，但既然是面積對照，就用真正保面積的投影。 */
+  const R_KM = 6371.0088;
+  function laeaProjector(lng0, lat0) {
+    const rad = Math.PI / 180, f1 = lat0 * rad, sf1 = Math.sin(f1), cf1 = Math.cos(f1);
+    return (lng, lat) => {
+      const dl = (lng - lng0) * rad, f = lat * rad, sf = Math.sin(f), cf = Math.cos(f), cd = Math.cos(dl);
+      const k = Math.sqrt(2 / (1 + sf1 * sf + cf1 * cf * cd));
+      return [R_KM * k * cf * Math.sin(dl), -R_KM * k * (cf1 * sf - sf1 * cf * cd)];   // y向下為正
+    };
+  }
+  function ringArea(pts) {
+    let a = 0;
+    for (let i = 0; i < pts.length - 1; i++) a += pts[i][0] * pts[i + 1][1] - pts[i + 1][0] * pts[i][1];
+    return Math.abs(a / 2);
+  }
+  function outerRings(fc) {
+    const out = [];
+    fc.features.forEach((f) => {
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      polys.forEach((poly) => out.push(poly[0]));
     });
-    const maxH = Math.max(...shapes.map((s) => s.h));
-    const scale = (H - pad * 2) / maxH;                       // 像素／公里，兩市共用
-    const widths = shapes.map((s) => s.w * scale);
-    const totalW = widths.reduce((a, b) => a + b, 0) + gap + pad * 2;
+    return out;
+  }
+
+  /* 同尺度輪廓：兩市界線以相同的像素／公里比例並排，直接看出規模差異。
+   * 另外疊一個虛線方框＝官方統計面積開根號的正方形（同樣等面積），
+   * 這樣即使手上的界線資料不完整，仍讀得出官方面積的真正大小關係。 */
+  function outlineShapes() {
+    return ORDER.map((id) => {
+      const c = CITIES[id], fc = c.boundaries();
+      let sx = 0, sy = 0, n = 0;
+      outerRings(fc).forEach((r) => r.forEach(([lng, lat]) => { sx += lng; sy += lat; n++; }));
+      const prj = laeaProjector(sx / n, sy / n);
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, drawn = 0;
+      const rings = outerRings(fc).map((r) => {
+        const pts = r.map(([lng, lat]) => {
+          const p = prj(lng, lat);
+          if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+          if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+          return p;
+        });
+        drawn += ringArea(pts);
+        return pts;
+      });
+      const official = c.stats.area_km2;
+      const side = Math.sqrt(official);                       // 等面積參考方框邊長（km）
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const w = Math.max(maxX - minX, side), h = Math.max(maxY - minY, side);
+      return { id, rings, drawn, official, side, cx, cy, w, h, coverage: drawn / official };
+    });
+  }
+
+  function renderOutline() {
+    const H = 158, pad = 6, gap = 26, foot = 30;
+    const shapes = outlineShapes();
+    const scale = (H - pad * 2 - foot) / Math.max(...shapes.map((s) => s.h));   // px/km，兩市共用
+    const totalW = shapes.reduce((a, s) => a + s.w * scale, 0) + gap * (shapes.length - 1) + pad * 2;
     let x = pad;
-    const groups = shapes.map((s, i) => {
-      const off = x, offY = pad + ((maxH - s.h) * scale) / 2;
-      x += widths[i] + gap;
-      const d = s.rings.map((r) => 'M' + r.map(([px, py]) => `${(off + (px - s.minX) * scale).toFixed(1)},${(offY + (py - s.minY) * scale).toFixed(1)}`).join('L') + 'Z').join(' ');
+    const groups = shapes.map((s) => {
       const c = CITIES[s.id];
-      return `<path d="${d}" fill="${c.chart}" fill-opacity="0.14" stroke="${c.chart}" stroke-width="1" stroke-linejoin="round"/>
-        <text x="${(off + widths[i] / 2).toFixed(1)}" y="${H - 2}" text-anchor="middle" class="outline-label">${c.name}</text>`;
+      const left = x, top = pad;
+      x += s.w * scale + gap;
+      const px = (kx) => (left + (kx - (s.cx - s.w / 2)) * scale).toFixed(1);
+      const py = (ky) => (top + (ky - (s.cy - s.h / 2)) * scale).toFixed(1);
+      const d = s.rings.map((r) => 'M' + r.map(([a, b]) => `${px(a)},${py(b)}`).join('L') + 'Z').join(' ');
+      const sq = `<rect x="${px(s.cx - s.side / 2)}" y="${py(s.cy - s.side / 2)}" width="${(s.side * scale).toFixed(1)}" height="${(s.side * scale).toFixed(1)}"
+        fill="none" stroke="${c.chart}" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.65"/>`;
+      const cxPx = (left + (s.w * scale) / 2).toFixed(1);
+      const gap2 = s.coverage < 0.98 ? `<text x="${cxPx}" y="${H - 6}" text-anchor="middle" class="outline-label">界線資料涵蓋 ${Math.round(s.coverage * 100)}%</text>` : '';
+      return `${sq}<path d="${d}" fill="${c.chart}" fill-opacity="0.14" stroke="${c.chart}" stroke-width="1" stroke-linejoin="round"/>
+        <text x="${cxPx}" y="${H - 17}" text-anchor="middle" class="outline-label">${c.name}　${num(s.official)} km²</text>${gap2}`;
     }).join('');
     const bar = (5 * scale).toFixed(1);
-    $('#compare-outline').innerHTML = `<svg viewBox="0 0 ${totalW.toFixed(0)} ${H + 16}" role="img" aria-label="兩市界線同尺度對照">
+    $('#compare-outline').innerHTML = `<svg viewBox="0 0 ${totalW.toFixed(0)} ${H + 14}" role="img" aria-label="兩市界線等面積同尺度對照">
       ${groups}
-      <g transform="translate(${pad},${H + 10})"><line x1="0" y1="0" x2="${bar}" y2="0" stroke="currentColor" stroke-width="1.5"/><text x="${(+bar) + 5}" y="3.5" class="outline-label">5 km（兩市同尺度）</text></g>
+      <g transform="translate(${pad},${H + 8})"><line x1="0" y1="0" x2="${bar}" y2="0" stroke="currentColor" stroke-width="1.5"/><text x="${(+bar) + 5}" y="3.5" class="outline-label">5 km（兩市同尺度，Lambert方位等積投影）</text></g>
     </svg>`;
+    const short = shapes.filter((s) => s.coverage < 0.98);
+    const note = $('#compare-outline-note');
+    if (!note) return;
+    note.innerHTML = `虛線方框是該市官方統計面積換算的等面積正方形；實心輪廓是手上的行政界線資料。`
+      + (short.length ? ' ' + short.map((s) => {
+        const c = CITIES[s.id];
+        return `<b>${c.name}</b>的界線目前只有${c.stats.unitsBundled}個${c.unit.label}（官方${c.stats.units}個），少了${num(s.official - s.drawn)} km²，所以輪廓比方框小；落在這些區裡的OSM物件也不會被計入下方指標。`;
+      }).join(' ') : '');
   }
 
   function renderBasic() {
