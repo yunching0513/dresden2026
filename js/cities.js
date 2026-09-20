@@ -67,7 +67,7 @@
         area_km2: 328.8,
         population: 571510, populationAsOf: '2025-12-31',
         populationNote: '主要居所人口（Hauptwohnsitz），資料來源：Landeshauptstadt Dresden戶籍登記。',
-        units: 64, unitsBundled: 61,
+        units: 64, unitsBundled: 64,
         elevation: [101, 383],
         greenNote: '約1/4市域為森林。',
       },
