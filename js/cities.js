@@ -9,10 +9,11 @@
 (function () {
   'use strict';
 
-  const CARTO = {
-    positron: { name: 'Positron（淺色）', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/">CARTO</a>' } },
+  /* 這裡只放「不需要金鑰」的圖磚來源。需要金鑰的CARTO與Google各自在
+   * js/cartotiles.js、js/googletiles.js，沒填金鑰就不會出現在選單中。 */
+  const TILES = {
     osm: { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' } },
-    dark: { name: 'Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO' } },
+    hot: { name: 'OSM Humanitarian（淺色）', url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { maxZoom: 19, subdomains: 'ab', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Tiles: <a href="https://www.hotosm.org/">HOT</a>, <a href="https://openstreetmap.fr/">OSM France</a>' } },
     topo: { name: 'OpenTopoMap', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)' } },
   };
 
@@ -61,7 +62,7 @@
       unit: { one: 'Stadtteil', many: 'Stadtteile', label: '統計分區', parent: 'Stadtbezirk / Ortschaft', hasParent: true },
       boundaries: () => window.DD_STADTTEILE,
       attribution: 'Datenquelle: <a href="https://opendata.dresden.de">Landeshauptstadt Dresden</a> (dl-de/by-2-0)',
-      baseLayers: [CARTO.osm, CARTO.positron, DOP_SACHSEN, CARTO.dark, CARTO.topo],
+      baseLayers: [TILES.osm, TILES.hot, DOP_SACHSEN, TILES.topo],
       imagery: DOP_SACHSEN,
       stats: {
         area_km2: 328.8,
@@ -94,7 +95,7 @@
       unit: { one: '行政區', many: '行政區', label: '行政區', parent: null, hasParent: false },
       boundaries: () => window.DD_TAIPEI_DISTRICTS,
       attribution: '界線：<a href="https://github.com/g0v/twgeojson">g0v/twgeojson</a>（OSM, ODbL）；面積：臺北市政府民政局',
-      baseLayers: [NLSC_EMAP, CARTO.osm, CARTO.positron, NLSC_PHOTO, CARTO.dark, CARTO.topo],
+      baseLayers: [NLSC_EMAP, TILES.osm, NLSC_PHOTO, TILES.hot, TILES.topo],
       imagery: NLSC_PHOTO,
       stats: {
         area_km2: 271.7997,
@@ -127,7 +128,7 @@
     { id: 'rail_stops', name: '軌道站點', layers: { dresden: 'osm_tram_stops', taipei: 'osm_metro_stops' } },
   ];
 
-  window.DD_BASEMAPS = CARTO;
+  window.DD_BASEMAPS = TILES;
   window.DD_SPLIT_PAIRS = splitPairs;
   window.DD_CITIES = cities;
   window.DD_CITY_ORDER = order;

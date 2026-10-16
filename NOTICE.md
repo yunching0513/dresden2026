@@ -14,6 +14,12 @@
 - **Landeshauptstadt Dresden open data** is loaded at runtime from kommisdd.dresden.de under
   Datenlizenz Deutschland – Namensnennung – Version 2.0 (dl-de/by-2-0). Attribution: "Landeshauptstadt Dresden, opendata.dresden.de".
 - **OpenStreetMap data** loaded at runtime via Overpass API: © OpenStreetMap contributors, ODbL 1.0.
+- **Basemap tiles** are fetched at runtime from their operators and are not redistributed here:
+  OpenStreetMap standard tiles and `tile.openstreetmap.fr/hot` (© OpenStreetMap contributors, ODbL 1.0;
+  HOT style by the Humanitarian OpenStreetMap Team, hosted by OpenStreetMap France), OpenTopoMap
+  (CC-BY-SA), and the official imagery services of each city. CARTO raster basemaps (Positron, Dark
+  Matter) have required an API key since 25 September 2026 and are therefore opt-in: the key is
+  supplied by the user and kept in their browser only.
 - **Taipei district boundaries** (`data/taipei_districts.geojson`, `data/taipei_districts.js`) and
   **Taipei village boundaries** (`data/taipei_villages.geojson`): derived from OpenStreetMap via
   https://github.com/g0v/twgeojson (`twTown1982`, `twVillage1982`). © OpenStreetMap contributors, ODbL 1.0.

@@ -230,6 +230,13 @@
       <div class="row"><button id="custom-geojson-add">從URL加入</button></div>
       <div class="row"><label class="small">或上傳檔案</label><input type="file" id="custom-geojson-file" accept=".geojson,.json"></div>
 
+      <h2>CARTO底圖（選用，需自備金鑰）</h2>
+      <p class="muted small">CARTO自2026年9月25日起不再提供無金鑰的raster圖磚：沒帶金鑰仍會回圖，但整片蓋上「API KEY REQUIRED」浮水印。金鑰<a href="https://carto.com/basemaps/apikey" target="_blank" rel="noopener">免費索取</a>、免註冊，填信箱即寄送，非商業用途每月500萬張圖磚。</p>
+      <p class="muted small">金鑰只存在你這台瀏覽器的localStorage，不會寫進本專案。不填也沒關係：預設底圖與其餘選項都不需要金鑰，填了只是多出Positron與Dark Matter兩個選擇。</p>
+      <div class="row"><label class="small">API金鑰</label><input id="carto-key" type="password" placeholder="貼上CARTO金鑰" autocomplete="off" spellcheck="false"></div>
+      <div class="row"><button id="carto-save">啟用並測試</button><button id="carto-clear" class="ghost">移除金鑰</button></div>
+      <p id="carto-status" class="small muted"></p>
+
       <h2>Google底圖（選用，需自備金鑰）</h2>
       <p class="muted small">Google Maps的圖磚不能直接接進一般地圖程式庫，必須透過官方的<a href="https://developers.google.com/maps/documentation/tile/overview" target="_blank" rel="noopener">Map Tiles API</a>。請在Google Cloud Console啟用Map Tiles API與帳務、建立API金鑰，並限制金鑰可用的網域後貼在下方。</p>
       <p class="muted small">金鑰只存在你這台瀏覽器的localStorage，不會寫進本專案，也不會傳給第三方。啟用後圖上會自動顯示Google要求的著作權標示；擷圖用於論文時請保留該標示。若不填金鑰，Google底圖不會出現在任何選單。</p>
@@ -302,6 +309,7 @@
   <script src="js/buildings3d.js"></script>
   <script src="js/annotate.js"></script>
   <script src="js/googletiles.js"></script>
+  <script src="js/cartotiles.js"></script>
   <script src="js/swipe.js"></script>
   <script src="js/visits.js"></script>
   <script src="js/compare.js"></script>

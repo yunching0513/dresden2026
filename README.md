@@ -75,7 +75,7 @@ WMS、官方圖磚與一般向量圖層可疊在 3D；CSV 分級設色、WMS 屬
 | 內政部國土測繪中心（wmts.nlsc.gov.tw） | 瀏覽器載入WMTS圖磚：通用版電子地圖（EMAP）、正射影像（PHOTO2）、地籍段籍圖（LANDSECT）、國土利用現況調查（LUIMAP） | 國土測繪圖資服務雲使用規範 |
 | 臺北市行政區界線（`data/taipei_districts.geojson`） | 取自 [g0v/twgeojson](https://github.com/g0v/twgeojson)（OSM轉繪）；面積欄位改用臺北市政府民政局公告值 | ODbL |
 | 臺北市里界（`data/taipei_villages.geojson`） | 同上，共449里 | ODbL |
-| 底圖 | CARTO Positron／Dark、OpenStreetMap、OpenTopoMap、NLSC通用版電子地圖與正射影像 | 各自條款 |
+| 底圖 | OpenStreetMap、OSM Humanitarian、OpenTopoMap、NLSC通用版電子地圖與正射影像；CARTO Positron／Dark與Google為選用（需自備金鑰） | 各自條款 |
 
 ### 官方WMS圖層與NodeId
 
@@ -111,13 +111,23 @@ Flächennutzungsplan（FNP 2020）、Lärmkartierung、Klimafunktionskarte、Kul
 
 | 底圖 | 來源 | 授權與標示 |
 |---|---|---|
-| OpenStreetMap、CARTO Positron／Dark | OSM contributors／CARTO | ODbL；需標示「© OpenStreetMap contributors」 |
+| OpenStreetMap（兩市預設之一） | OSM contributors | ODbL；需標示「© OpenStreetMap contributors」 |
+| OSM Humanitarian | HOT／OSM France `tile.openstreetmap.fr/hot` | ODbL；需標示OSM contributors與HOT |
 | OpenTopoMap | OpenTopoMap | CC-BY-SA |
 | 通用版電子地圖、正射影像（臺北預設） | 內政部國土測繪中心WMTS（EMAP、PHOTO2） | 國土測繪圖資服務雲使用規範；標示「內政部國土測繪中心」 |
 | 正射影像（德勒斯登） | GeoSN薩克森 `wms_geosn_dop-rgb` | dl-de/by-2-0；標示「Geodaten Sachsen」 |
+| CARTO Positron／Dark Matter（選用） | CARTO raster basemaps | 需自備免費API金鑰；ODbL＋CARTO標示 |
 | Google 街道圖／衛星影像／衛星＋街道（選用） | Google Map Tiles API | 需自備API金鑰與帳務；標示由viewport端點取得後自動顯示 |
 
 「官方正射影像」在並列模式中會讓兩側各自使用自己國家的官方影像，兩市仍維持相同的地面比例尺。
+
+### CARTO底圖：填入金鑰才啟用
+
+CARTO自**2026年9月25日**起不再提供無金鑰的raster圖磚。沒帶金鑰的請求仍會回圖，但整片蓋上「API KEY REQUIRED」浮水印，所以本專案把Positron與Dark Matter改成選用：沒填金鑰時這兩個選項**不會出現在任何底圖選單**，使用者不會莫名其妙看到浮水印。預設底圖與其餘選項都不需要金鑰。
+
+金鑰於 <https://carto.com/basemaps/apikey> 免費索取，填信箱即寄送、免註冊、免信用卡，非商業用途每月500萬張圖磚。拿到後貼進「資料」頁籤的CARTO區塊，圖磚網址會變成 `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=…`。金鑰只存在瀏覽器的localStorage，不會寫進本專案。
+
+需要注意的是CARTO看起來正在淡出legacy raster服務，向量樣式則不受金鑰限制。若日後raster也停掉，較穩的替代是改走向量圖磚（例如OpenFreeMap的positron樣式，免金鑰、無流量限制），代價是2D地圖要一併載入MapLibre。
 
 ### Google底圖：填入金鑰才啟用
 
@@ -226,6 +236,7 @@ js/app.js                     地圖、圖層載入（WMS／WMTS／Overpass／Ge
 js/compare.js                 城市切換視窗與雙城比較（同尺度輪廓、基本數字、OSM指標）
 js/split.js                   並列雙城地圖（左右兩張圖、鎖定相同地面比例尺、共同圖層）
 js/googletiles.js             選用的Google底圖（Map Tiles API；金鑰由使用者自備，存在瀏覽器）
+js/cartotiles.js              選用的CARTO底圖（Positron／Dark；金鑰由使用者自備，存在瀏覽器）
 js/swipe.js                   捲簾比較（以clip-path裁切WMS與圖磚圖層）
 js/annotate.js                註記工具（Pin／線／範圍、編輯、localStorage、匯入匯出）
 js/buildings3d.js             3D建築量體（MapLibre GL；GeoSN LoD1 或 OSM即時查詢）

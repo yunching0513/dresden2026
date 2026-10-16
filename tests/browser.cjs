@@ -98,6 +98,34 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:8000';
   // 界線涵蓋率足夠時不該再出現缺漏提示。
   assert.doesNotMatch(outline.note,/界線目前只有/);
   assert.match(outline.note,/虛線方框是該市官方統計面積/);
+  // 需要金鑰的底圖（CARTO、Google）在沒有金鑰時不得出現在任何選單，
+  // 否則使用者會看到整片「API KEY REQUIRED」浮水印而不知道原因。
+  const keyless = await browser.newPage({viewport:{width:1440,height:960}});
+  await keyless.goto(base+'#v=2d',{waitUntil:'domcontentloaded'});
+  await keyless.waitForFunction(()=>window.DDCarto&&document.querySelector('.leaflet-control-layers-base'));
+  const names=()=>keyless.evaluate(()=>[...document.querySelectorAll('.leaflet-control-layers-base label')].map(n=>n.textContent.trim()));
+  const withoutKey=await names();
+  assert.deepEqual(await keyless.evaluate(()=>DDCarto.basemaps()),[]);
+  assert.ok(!withoutKey.some(n=>/CARTO|Google/.test(n)),`無金鑰時不該列出需金鑰的底圖：${withoutKey}`);
+  assert.ok(withoutKey.some(n=>/OpenStreetMap/.test(n)),`預設底圖必須免金鑰：${withoutKey}`);
+
+  // 填入金鑰後才加入選單，且金鑰要帶進圖磚網址。
+  const cartoUrls=[];
+  await keyless.route('**://*.cartocdn.com/**',route=>{cartoUrls.push(route.request().url());
+    route.fulfill({status:200,contentType:'image/gif',body:Buffer.from('R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==','base64')});});
+  await keyless.locator('[data-tab="data"]').click();
+  await keyless.locator('#carto-key').fill('TEST-KEY-123');
+  await keyless.locator('#carto-save').click();
+  await keyless.waitForFunction(()=>DDCarto.basemaps().length===2);
+  assert.ok((await names()).some(n=>/CARTO Positron/.test(n)),'填金鑰後應出現CARTO底圖');
+  await keyless.evaluate(()=>{const inputs=[...document.querySelectorAll('.leaflet-control-layers-base input')];inputs[inputs.length-2].click();});
+  await keyless.waitForFunction(()=>document.querySelectorAll('img.leaflet-tile[src*="cartocdn"]').length>0);
+  assert.ok(cartoUrls.length&&cartoUrls.every(u=>u.includes('key=TEST-KEY-123')),`CARTO圖磚必須帶金鑰：${cartoUrls[0]}`);
+  assert.match(cartoUrls[0],/rastertiles\/(light|dark)_all/);
+  await keyless.locator('#carto-clear').click();
+  await keyless.waitForFunction(()=>DDCarto.basemaps().length===0);
+  assert.ok(!(await names()).some(n=>/CARTO/.test(n)),'移除金鑰後CARTO底圖應消失');
+
   await browser.close();
-  console.log('PASS: real 3D data, controls, 2D/3D, share restore, picking, mobile, failure/retry, equal-area compare outline; no JS errors.');
+  console.log('PASS: real 3D data, controls, 2D/3D, share restore, picking, mobile, failure/retry, equal-area compare outline, keyed basemaps gated; no JS errors.');
 })().catch(error=>{console.error(error);process.exit(1);});

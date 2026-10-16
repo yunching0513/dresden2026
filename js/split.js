@@ -78,7 +78,8 @@
     let b;
     if (key === 'imagery') b = CITIES[cityId].imagery;
     else if (key.indexOf('google:') === 0) b = window.DDGoogle.typeById(key.slice(7));
-    if (!b) b = BASEMAPS[key] || BASEMAPS.positron;
+    else if (key.indexOf('carto:') === 0) b = window.DDCarto && window.DDCarto.typeById(key.slice(6));
+    if (!b) b = BASEMAPS[key] || BASEMAPS.osm;
     bases[cityId] = app.makeBaseLayer(b, map, CITIES[cityId].locale).addTo(map);
     bases[cityId].bringToBack();
   }
@@ -234,12 +235,13 @@
   function refreshBases() {
     const baseSel = $('#split-base');
     if (!baseSel) return;
-    const keep = baseSel.value || 'positron';
+    const keep = baseSel.value || 'osm';
     baseSel.innerHTML = '';
     Object.entries(BASEMAPS).forEach(([key, b]) => baseSel.appendChild(app.el('option', { value: key, text: b.name })));
     baseSel.appendChild(app.el('option', { value: 'imagery', text: '官方正射影像（各市官方來源）' }));
+    (window.DDCarto ? window.DDCarto.basemaps() : []).forEach((t) => baseSel.appendChild(app.el('option', { value: `carto:${t.id}`, text: t.name })));
     (window.DDGoogle ? window.DDGoogle.basemaps() : []).forEach((t) => baseSel.appendChild(app.el('option', { value: `google:${t.id}`, text: t.name })));
-    baseSel.value = [...baseSel.options].some((o) => o.value === keep) ? keep : 'positron';
+    baseSel.value = [...baseSel.options].some((o) => o.value === keep) ? keep : 'osm';
     if (built) ORDER.forEach((id) => setBase(id, baseSel.value));
   }
 
