@@ -263,3 +263,11 @@ vendor/leaflet/               Leaflet 1.9.4（BSD-2-Clause）
 // OSM點資料
 { id: 'osm_cinema', group: 'daseins', type: 'overpass', geom: 'point', name: '電影院', query: 'nwr["amenity"="cinema"]({{bbox}});', source: 'OpenStreetMap', license: 'ODbL', color: '#c0392b', radius: 4 }
 ```
+
+
+---
+
+## 著作權 Copyright
+
+© 2026　吳昀慶 Yun-Ching Wu
+授權條款見 [`LICENSE`](LICENSE) 與 [`LICENSE-CONTENT`](LICENSE-CONTENT)　詳細聲明見 [`COPYRIGHT.md`](COPYRIGHT.md)
