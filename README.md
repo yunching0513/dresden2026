@@ -220,7 +220,7 @@ python3 -m http.server 8000
 
 ## 部署
 
-線上版由 **Vercel** 部署，推送到 `claude/taipei-dresden-compare` 即自動更新。設定都在 `vercel.json`：不做建置，輸出目錄就是repo根目錄，`data/buildings/` 與 `vendor/` 給長快取；`.vercelignore` 把 `scripts/`、`tests/` 等排除在部署之外（`scripts/requirements.txt` 會讓Vercel誤判為Python專案）。
+線上版由 **Vercel** 部署，推送到 `main` 即自動更新。設定都在 `vercel.json`：不做建置，輸出目錄就是repo根目錄，`data/buildings/` 與 `vendor/` 給長快取；`.vercelignore` 把 `scripts/`、`tests/` 等排除在部署之外（`scripts/requirements.txt` 會讓Vercel誤判為Python專案）。
 
 也可以用任何靜態主機（GitHub Pages、Netlify、Cloudflare Pages、`python3 -m http.server`）：整個repo直接當靜態站送出即可，沒有建置步驟。若改用GitHub Pages，注意 `github-pages` 環境預設只允許**預設分支**部署。
 
